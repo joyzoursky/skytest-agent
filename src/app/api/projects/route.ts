@@ -38,8 +38,12 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { name, userId } = body;
 
-        if (!name || !userId) {
-            return NextResponse.json({ error: 'Name and User ID are required' }, { status: 400 });
+        if (!name || typeof name !== 'string' || !name.trim()) {
+            return NextResponse.json({ error: 'Valid project name is required' }, { status: 400 });
+        }
+
+        if (!userId || typeof userId !== 'string') {
+            return NextResponse.json({ error: 'Valid User ID is required' }, { status: 400 });
         }
 
         // Ensure user exists
@@ -55,7 +59,7 @@ export async function POST(request: Request) {
 
         const project = await prisma.project.create({
             data: {
-                name,
+                name: name.trim(),
                 userId: user.id,
             },
         });

@@ -4,6 +4,9 @@ import { useState, useEffect, use } from "react";
 import { useAuth } from "../../../auth-provider";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Modal from "@/components/Modal";
+import Breadcrumbs from "@/components/Breadcrumbs";
+import { formatDateTime } from "@/utils/dateFormatter";
 
 interface TestRun {
     id: string;
@@ -18,7 +21,11 @@ export default function HistoryPage({ params }: { params: Promise<{ id: string }
     const { isLoggedIn, isLoading: isAuthLoading } = useAuth();
     const router = useRouter();
     const [testRuns, setTestRuns] = useState<TestRun[]>([]);
+    const [testCaseName, setTestCaseName] = useState<string>("");
+    const [projectId, setProjectId] = useState<string>("");
+    const [projectName, setProjectName] = useState<string>("");
     const [isLoading, setIsLoading] = useState(true);
+    const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; runId: string }>({ isOpen: false, runId: "" });
 
     useEffect(() => {
         if (!isAuthLoading && !isLoggedIn) {
@@ -28,7 +35,27 @@ export default function HistoryPage({ params }: { params: Promise<{ id: string }
 
     useEffect(() => {
         fetchHistory();
+        fetchTestCaseInfo();
     }, [id]);
+
+    const fetchTestCaseInfo = async () => {
+        try {
+            const response = await fetch(`/api/test-cases/${id}`);
+            if (response.ok) {
+                const data = await response.json();
+                setTestCaseName(data.name);
+                setProjectId(data.projectId);
+                // Fetch project name
+                const projectResponse = await fetch(`/api/projects/${data.projectId}`);
+                if (projectResponse.ok) {
+                    const projectData = await projectResponse.json();
+                    setProjectName(projectData.name);
+                }
+            }
+        } catch (error) {
+            console.error("Failed to fetch test case info", error);
+        }
+    };
 
     const fetchHistory = async () => {
         try {
@@ -44,6 +71,20 @@ export default function HistoryPage({ params }: { params: Promise<{ id: string }
         }
     };
 
+    const handleDeleteRun = async () => {
+        try {
+            const response = await fetch(`/api/test-runs/${deleteModal.runId}`, {
+                method: "DELETE",
+            });
+
+            if (response.ok) {
+                fetchHistory();
+            }
+        } catch (error) {
+            console.error("Failed to delete test run", error);
+        }
+    };
+
     if (isAuthLoading || isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
@@ -54,15 +95,26 @@ export default function HistoryPage({ params }: { params: Promise<{ id: string }
 
     return (
         <main className="min-h-screen bg-gray-50 p-8">
+            <Modal
+                isOpen={deleteModal.isOpen}
+                onClose={() => setDeleteModal({ isOpen: false, runId: "" })}
+                title="Delete Test Run"
+                onConfirm={handleDeleteRun}
+                confirmText="Delete"
+                confirmVariant="danger"
+            >
+                <p className="text-gray-700">
+                    Are you sure you want to delete this test run? This action cannot be undone.
+                </p>
+            </Modal>
+
             <div className="max-w-5xl mx-auto">
-                <div className="flex items-center gap-4 mb-8">
-                    <button onClick={() => router.back()} className="text-gray-500 hover:text-gray-700">
-                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                        </svg>
-                    </button>
-                    <h1 className="text-3xl font-bold text-gray-900">Test History</h1>
-                </div>
+                <Breadcrumbs items={[
+                    { label: projectName, href: projectId ? `/projects/${projectId}` : undefined },
+                    { label: testCaseName }
+                ]} />
+
+                <h1 className="text-3xl font-bold text-gray-900 mb-8">Test History</h1>
 
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                     <div className="grid grid-cols-12 gap-4 p-4 border-b border-gray-200 bg-gray-50 text-sm font-medium text-gray-500">
@@ -72,8 +124,14 @@ export default function HistoryPage({ params }: { params: Promise<{ id: string }
                     </div>
 
                     {testRuns.length === 0 ? (
-                        <div className="p-8 text-center text-gray-500">
-                            No history available for this test case.
+                        <div className="p-16 text-center">
+                            <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+                                <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2">No test history</h3>
+                            <p className="text-gray-500">This test case hasn't been run yet. Run the test to see results here.</p>
                         </div>
                     ) : (
                         <div className="divide-y divide-gray-100">
@@ -81,22 +139,33 @@ export default function HistoryPage({ params }: { params: Promise<{ id: string }
                                 <div key={run.id} className="grid grid-cols-12 gap-4 p-4 items-center hover:bg-gray-50 transition-colors">
                                     <div className="col-span-3">
                                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${run.status === 'PASS' ? 'bg-green-100 text-green-800' :
-                                                run.status === 'FAIL' ? 'bg-red-100 text-red-800' :
+                                            run.status === 'FAIL' ? 'bg-red-100 text-red-800' :
+                                                run.status === 'CANCELLED' ? 'bg-gray-100 text-gray-800' :
                                                     'bg-yellow-100 text-yellow-800'
                                             }`}>
                                             {run.status}
                                         </span>
                                     </div>
                                     <div className="col-span-5 text-sm text-gray-500">
-                                        {new Date(run.createdAt).toLocaleString()}
+                                        {formatDateTime(run.createdAt)}
                                     </div>
-                                    <div className="col-span-4 text-right">
+                                    <div className="col-span-4 flex justify-end gap-2">
                                         <Link
                                             href={`/test-cases/${id}/history/${run.id}`}
-                                            className="text-primary hover:text-primary/80 text-sm font-medium"
+                                            className="px-3 py-1.5 text-primary hover:text-primary/80 text-sm font-medium hover:bg-blue-50 rounded transition-colors"
                                         >
                                             View Details
                                         </Link>
+                                        <button
+                                            onClick={() => setDeleteModal({ isOpen: true, runId: run.id })}
+                                            className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                                            title="Delete Run"
+                                            aria-label="Delete Run"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
                                     </div>
                                 </div>
                             ))}

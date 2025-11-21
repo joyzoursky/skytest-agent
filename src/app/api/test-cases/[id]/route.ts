@@ -1,6 +1,39 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+export async function GET(
+    request: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    try {
+        const { id } = await params;
+        const testCase = await prisma.testCase.findUnique({
+            where: { id },
+            select: {
+                id: true,
+                name: true,
+                url: true,
+                prompt: true,
+                username: true,
+                password: true,
+                projectId: true,
+                createdAt: true,
+                updatedAt: true,
+            },
+        });
+
+        if (!testCase) {
+            return NextResponse.json({ error: 'Test case not found' }, { status: 404 });
+        }
+
+        return NextResponse.json(testCase);
+    } catch (error) {
+        console.error('Failed to fetch test case:', error);
+        return NextResponse.json({ error: 'Failed to fetch test case' }, { status: 500 });
+    }
+}
+
+
 export async function PUT(
     request: Request,
     { params }: { params: Promise<{ id: string }> }

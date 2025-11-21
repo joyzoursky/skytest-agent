@@ -61,7 +61,14 @@ export async function POST(request: Request) {
                 log('Launching browser...', 'info');
                 browser = await chromium.launch({
                     headless: true,
-                    timeout: 30000
+                    timeout: 30000,
+                    args: [
+                        '--no-default-browser-check',
+                        '--no-first-run',
+                        '--disable-default-apps',
+                        '--password-store=basic',
+                        '--use-mock-keychain',
+                    ]
                 });
                 log('Browser launched successfully', 'success');
 

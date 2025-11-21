@@ -1,45 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import TestForm from './components/TestForm';
-import ResultViewer from './components/ResultViewer';
-
-interface TestData {
-  url: string;
-  username?: string;
-  password?: string;
-  prompt: string;
-}
-
-type TestEvent =
-  | { type: 'log'; data: { message: string; level: 'info' | 'error' | 'success' }; timestamp: number }
-  | { type: 'screenshot'; data: { src: string; label: string }; timestamp: number };
-
-interface TestResult {
-  status: 'IDLE' | 'RUNNING' | 'PASS' | 'FAIL';
-  events: TestEvent[];
-  error?: string;
-}
-
 import { useAuth } from './auth-provider';
 
 export default function Home() {
-  const { login, logout, isLoggedIn, user, isLoading: isAuthLoading } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<TestResult>({
-    status: 'IDLE',
-    events: [],
-  });
+  const { login, isLoggedIn, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isAuthLoading && isLoggedIn) {
+    if (!isLoading && isLoggedIn) {
       router.push('/projects');
     }
-  }, [isLoggedIn, isAuthLoading, router]);
+  }, [isLoggedIn, isLoading, router]);
 
-  if (isAuthLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -51,176 +26,246 @@ export default function Home() {
     return null; // Will redirect
   }
 
-  const handleRunTest = async (data: TestData) => {
-    // ... (keep existing handleRunTest logic)
-    setIsLoading(true);
-    setResult({
-      status: 'RUNNING',
-      events: [],
-    });
-
-    try {
-      const response = await fetch('/api/run-test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      if (!response.body) {
-        throw new Error('No response body');
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const eventData = JSON.parse(line.slice(6));
-
-              setResult(prev => {
-                const newEvents = [...prev.events];
-
-                if (eventData.type === 'log') {
-                  newEvents.push({
-                    type: 'log',
-                    data: { message: eventData.message, level: eventData.level },
-                    timestamp: Date.now()
-                  });
-                } else if (eventData.type === 'screenshot') {
-                  newEvents.push({
-                    type: 'screenshot',
-                    data: { src: eventData.src, label: eventData.label },
-                    timestamp: Date.now()
-                  });
-                } else if (eventData.type === 'status') {
-                  return {
-                    ...prev,
-                    status: eventData.status,
-                    error: eventData.error
-                  };
-                }
-
-                return { ...prev, events: newEvents };
-              });
-            } catch (e) {
-              console.error('Error parsing SSE data:', e);
-            }
-          }
-        }
-      }
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-      setResult(prev => ({
-        ...prev,
-        status: 'FAIL',
-        error: errorMessage
-      }));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
-    <main className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Header */}
-        <header className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center shadow-sm">
-                <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <main className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-6 py-20 sm:py-32">
+          <div className="text-center">
+            {/* Logo */}
+            <div className="flex justify-center mb-8">
+              <div className="w-20 h-20 bg-gradient-to-br from-primary to-purple-600 rounded-2xl flex items-center justify-center shadow-xl">
+                <svg className="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
-              <div>
-                <h1 className="text-3xl font-semibold text-foreground mb-1">
-                  Web AutoTest Agent
-                </h1>
-                <p className="text-muted-foreground text-sm">
-                  Intelligent automated testing platform powered by AI
-                </p>
-              </div>
             </div>
-            <div className="flex items-center gap-4">
-              {!isAuthLoading && (
-                <>
-                  {isLoggedIn ? (
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm text-gray-600">
-                        {user?.email || 'User'}
-                      </span>
-                      <button
-                        onClick={() => logout()}
-                        className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 transition-colors"
-                      >
-                        Logout
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => login()}
-                      className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary/90 transition-colors shadow-sm"
-                    >
-                      Login
-                    </button>
-                  )}
-                </>
-              )}
-              <div className="h-6 w-px bg-gray-200" />
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 rounded-md border border-green-200">
-                  <div className="w-2 h-2 bg-green-500 rounded-full" />
-                  <span className="text-green-700 text-xs font-medium">Online</span>
-                </div>
-                <div className="px-3 py-1.5 bg-gray-100 rounded-md border border-gray-200">
-                  <span className="text-gray-600 text-xs font-medium">v1.0.0</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </header>
 
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Left Column - Form */}
-          <div className="lg:col-span-5 space-y-6">
-            <TestForm onSubmit={handleRunTest} isLoading={isLoading} />
-          </div>
+            {/* Headline */}
+            <h1 className="text-5xl sm:text-6xl font-bold text-gray-900 mb-6">
+              Test Your Web Apps with
+              <span className="block bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent mt-2">
+                Natural Language
+              </span>
+            </h1>
 
-          {/* Right Column - Results */}
-          <div className="lg:col-span-7 h-full">
-            <ResultViewer result={result} />
+            {/* Subheadline */}
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-10 leading-relaxed">
+              Web AutoTest Agent uses AI to execute end-to-end tests in plain English.
+              No code, no complex setup—just describe what you want to test.
+            </p>
+
+            {/* CTA Button */}
+            <button
+              onClick={() => login()}
+              className="px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-primary to-purple-600 rounded-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+            >
+              Get Started Free
+            </button>
+
+            {/* Trust Badge */}
+            <p className="text-sm text-gray-500 mt-4">
+              Powered by Midscene.js & Playwright
+            </p>
           </div>
         </div>
 
-        {/* Footer */}
-        <footer className="mt-16 pt-6 border-t border-gray-200">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span>Powered by Midscene.js & Playwright</span>
+        {/* Decorative Elements */}
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
+          <div className="absolute top-20 left-10 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob"></div>
+          <div className="absolute top-40 right-10 w-72 h-72 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-2000"></div>
+          <div className="absolute -bottom-8 left-1/2 w-72 h-72 bg-pink-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-4000"></div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              Why Choose Web AutoTest Agent?
+            </h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Simplify your testing workflow with intelligent automation
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {/* Feature 1 */}
+            <div className="p-8 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
+              <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mb-4">
+                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Natural Language Testing</h3>
+              <p className="text-gray-600">
+                Write tests in plain English. No coding required. Just describe what you want to test, and our AI handles the rest.
+              </p>
             </div>
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <a href="#" className="hover:text-primary transition-colors">Documentation</a>
-              <a href="#" className="hover:text-primary transition-colors">GitHub</a>
-              <a href="#" className="hover:text-primary transition-colors">API Reference</a>
+
+            {/* Feature 2 */}
+            <div className="p-8 rounded-xl bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
+              <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center mb-4">
+                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Visual Test Results</h3>
+              <p className="text-gray-600">
+                Get detailed screenshots at each step. See exactly what happened during your test execution with full visibility.
+              </p>
+            </div>
+
+            {/* Feature 3 */}
+            <div className="p-8 rounded-xl bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
+              <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center mb-4">
+                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Test History & Tracking</h3>
+              <p className="text-gray-600">
+                Keep track of all your test runs. View historical results, compare outcomes, and monitor your app's quality over time.
+              </p>
             </div>
           </div>
-        </footer>
-      </div>
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section className="py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              How It Works
+            </h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Get started in minutes with our simple 4-step process
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {/* Step 1 */}
+            <div className="text-center">
+              <div className="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4 shadow-lg">
+                1
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Sign In</h3>
+              <p className="text-gray-600">
+                Create your account and access the dashboard
+              </p>
+            </div>
+
+            {/* Step 2 */}
+            <div className="text-center">
+              <div className="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4 shadow-lg">
+                2
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Create Project</h3>
+              <p className="text-gray-600">
+                Organize your tests by creating projects
+              </p>
+            </div>
+
+            {/* Step 3 */}
+            <div className="text-center">
+              <div className="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4 shadow-lg">
+                3
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Write Test</h3>
+              <p className="text-gray-600">
+                Describe your test in plain English
+              </p>
+            </div>
+
+            {/* Step 4 */}
+            <div className="text-center">
+              <div className="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4 shadow-lg">
+                4
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Run & Review</h3>
+              <p className="text-gray-600">
+                Execute tests and view detailed results
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Example Section */}
+      <section className="py-20 bg-white">
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              See It In Action
+            </h2>
+            <p className="text-lg text-gray-600">
+              Here's an example of a test written in natural language
+            </p>
+          </div>
+
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-8 shadow-2xl">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-3 h-3 rounded-full bg-red-500"></div>
+              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+              <div className="w-3 h-3 rounded-full bg-green-500"></div>
+            </div>
+            <div className="space-y-4">
+              <div className="text-gray-400 text-sm font-mono">
+                <span className="text-purple-400">URL:</span> https://www.saucedemo.com
+              </div>
+              <div className="text-gray-400 text-sm font-mono">
+                <span className="text-purple-400">Username:</span> standard_user
+              </div>
+              <div className="text-gray-400 text-sm font-mono">
+                <span className="text-purple-400">Password:</span> secret_sauce
+              </div>
+              <div className="border-t border-gray-700 pt-4">
+                <div className="text-gray-400 text-sm font-mono mb-2">
+                  <span className="text-purple-400">Test Instructions:</span>
+                </div>
+                <div className="text-green-400 font-mono text-sm leading-relaxed">
+                  Login to the website, add "Sauce Labs Backpack" to cart,<br />
+                  go to cart, proceed to checkout, fill in shipping info,<br />
+                  and complete the purchase.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-center text-gray-600 mt-8">
+            That's it! Our AI will execute all the steps automatically.
+          </p>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 bg-gradient-to-r from-primary to-purple-600">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
+            Ready to Automate Your Testing?
+          </h2>
+          <p className="text-xl text-blue-100 mb-8">
+            Join now and start testing smarter, not harder
+          </p>
+          <button
+            onClick={() => login()}
+            className="px-8 py-4 text-lg font-semibold text-primary bg-white rounded-lg hover:bg-gray-100 transition-all duration-200 transform hover:scale-105 shadow-xl"
+          >
+            Get Started Now
+          </button>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-gray-400 py-12">
+        <div className="max-w-7xl mx-auto px-6 text-center">
+          <p className="text-sm">
+            © {new Date().getFullYear()} Web AutoTest Agent. Powered by Midscene.js & Playwright.
+          </p>
+        </div>
+      </footer>
     </main>
   );
 }

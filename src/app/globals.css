@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Archivo:wght@100;200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@100;200;300;400;500;600;700;800&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -43,13 +41,20 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
     font-weight: 600;
     letter-spacing: -0.01em;
   }
 
-  code, pre, .font-mono {
+  code,
+  pre,
+  .font-mono {
     font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
   }
 }
@@ -83,12 +88,21 @@
     @apply bg-blue-50 text-blue-700 border-blue-200;
   }
 
+  .status-badge-cancelled {
+    @apply bg-gray-50 text-gray-700 border-gray-200;
+  }
+
   .timeline-dot {
     @apply absolute left-0 top-1.5 w-2.5 h-2.5 rounded-full border-2 border-white z-10 transition-all;
   }
 
   .timeline-line {
     @apply absolute left-[4px] top-5 bottom-0 w-px bg-gray-200;
+  }
+
+  .text-security-disc {
+    -webkit-text-security: disc;
+    font-family: text-security-disc; /* Fallback if needed, though webkit usually suffices for Chrome/Safari */
   }
 }
 
@@ -116,6 +130,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -123,4 +138,34 @@
 
 .animate-fade-in {
   animation: fade-in 0.3s ease-out;
+}
+
+@keyframes blob {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
 }

@@ -1,97 +1,100 @@
-# Web AutoTest Agent
+# 🤖 Web AutoTest Agent
 
 An autonomous web testing application powered by AI. Write test scenarios in plain English and watch the AI agent navigate, interact, and validate your web applications automatically.
 
-## Features
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Next.js](https://img.shields.io/badge/Next.js-16-black)
+![Prisma](https://img.shields.io/badge/Prisma-7.0-blue)
+![Midscene.js](https://img.shields.io/badge/Midscene.js-0.30-orange)
 
-- **Natural Language Testing**: Describe test steps in plain English
-- **Real-time Streaming**: Watch tests execute with live logs and screenshots
-- **AI-Powered**: Uses Midscene.js for intelligent web automation
-- **No Code Required**: Just describe what you want to test
+## ✨ Features
 
-## Tech Stack
+- **Natural Language Testing**: Describe test steps in plain English (e.g., "Click the login button and verify the dashboard header").
+- **Real-time Execution**: Watch the AI agent work in real-time with live logs and visual snapshots.
+- **AI-Powered Automation**: Leverages Midscene.js for intelligent element interaction and visual verification.
+- **Project Management**: Organize your test cases into projects and track historical test runs.
+- **Modern UI**: A sleek, responsive dashboard built with Tailwind CSS.
 
-- **Next.js 16** - React framework
-- **Midscene.js** - AI-powered web automation
-- **Playwright** - Browser automation
-- **Tailwind CSS** - Styling
+## 🛠 Tech Stack
 
-## Getting Started
+- **Framework**: [Next.js 16](https://nextjs.org/) (App Router)
+- **AI Agent**: [Midscene.js](https://midscenejs.com/)
+- **Browser Automation**: [Playwright](https://playwright.dev/)
+- **Database**: [SQLite](https://www.sqlite.org/) with [Prisma ORM](https://www.prisma.io/)
+- **Authentication**: [Authgear](https://www.authgear.com/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+
+## 🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ installed
-- An OpenRouter API key (or OpenAI API key)
+- Node.js 18+
+- An API Key for an LLM provider (OpenRouter, OpenAI, etc.)
+- An Authgear account (or configure your own auth provider)
 
 ### Installation
 
-1. Clone the repository
-2. Install dependencies:
-```bash
-npm install
-```
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/yourusername/web-autotest-agent.git
+   cd web-autotest-agent
+   ```
 
-3. Set up environment variables:
-```bash
-cp .env.example .env.local
-```
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
 
-4. Edit `.env.local` and add your API keys:
-```
-# AI Configuration
-OPENAI_BASE_URL=https://openrouter.ai/api/v1
-OPENAI_API_KEY=your_api_key_here
-MIDSCENE_MODEL_NAME=google/gemini-2.5-flash
+3. **Set up Environment Variables**:
+   Copy the example environment file and fill in your credentials:
+   ```bash
+   cp .env.example .env.local
+   ```
+   *Required Keys:* `OPENAI_API_KEY`, `NEXT_PUBLIC_AUTHGEAR_CLIENT_ID`, `NEXT_PUBLIC_AUTHGEAR_ENDPOINT`.
 
-# Authgear Configuration
-NEXT_PUBLIC_AUTHGEAR_CLIENT_ID=your_client_id
-NEXT_PUBLIC_AUTHGEAR_ENDPOINT=your_endpoint
-NEXT_PUBLIC_AUTHGEAR_REDIRECT_URI=http://localhost:3000/auth-redirect
-```
+4. **Initialize the Database**:
+   ```bash
+   npx prisma db push
+   ```
 
-### Running the App
+### Running the Application
 
 ```bash
 npm run dev
 ```
+Open [http://localhost:3000](http://localhost:3000) to start testing.
 
-Open [http://localhost:3000](http://localhost:3000) to use the application.
+## 📝 Usage Guide
 
-## Usage
+1. **Create a Project**: Group your test cases by application or feature set.
+2. **Add a Test Case**:
+   - **URL**: The starting page for the test.
+   - **Prompt**: Your instructions in plain English.
+   - **Credentials**: (Optional) Provide login info if needed for the test flow.
+3. **Execute**: Click **Deploy Test Agent** and monitor the results in the interactive viewer.
 
-1. **Enter Target URL**: The website you want to test
-2. **Credentials** (optional): Username and password if login is required
-3. **Agent Instructions**: Describe your test scenario in plain English
-
-Example:
-```
-Login with the provided credentials.
-Navigate to the products page.
-Add the first item to cart.
-Verify the item appears in the cart.
-```
-
-4. Click **Deploy Test Agent** and watch it execute!
-
-## Project Structure
-
-```
-├── src/
-│   ├── app/
-│   │   ├── api/
-│   │   │   └── run-test/      # API endpoint for running tests
-│   │   ├── components/         # React components
-│   │   │   ├── TestForm.tsx   # Test configuration form
-│   │   │   └── ResultViewer.tsx # Test results display
-│   │   ├── globals.css        # Global styles
-│   │   ├── layout.tsx         # Root layout
-│   │   └── page.tsx          # Home page
-│   └── ...
-├── public/                     # Static assets
-├── .env.example               # Environment template
-└── package.json               # Dependencies
+### Example Prompt
+```text
+1. Login with the user credentials.
+2. Search for "Mechanical Keyboard" in the search bar.
+3. Click on the first result.
+4. Verify that the product price is visible.
 ```
 
-## License
+## 🔒 Security & Privacy
 
-MIT
+- **API Keys**: Never commit your `.env.local` file. It is included in `.gitignore` by default.
+- **Password Safety**: Test case passwords are stored in the database. For security, do not use real-world sensitive passwords for automated tests.
+- **Data Persistence**: By default, data is stored in a local `dev.db` file.
+
+## 📂 Project Structure
+
+- `src/app/`: Next.js pages and API routes.
+- `src/components/`: Reusable React components.
+- `src/lib/`: Shared utilities and Prisma client.
+- `prisma/`: Database schema and migrations.
+- `midscene_run/`: Reports and logs from AI test runs (ignored by git).
+
+## 📄 License
+
+Distributed under the MIT License. See [LICENSE](LICENSE) for more information.

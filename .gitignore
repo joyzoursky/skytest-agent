@@ -66,3 +66,9 @@ midscene_run/tmp
 midscene_run/log
 
 /src/generated/prisma
+
+# Local Database
+dev.db
+
+# AI Tools
+.claude

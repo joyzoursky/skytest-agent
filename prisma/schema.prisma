@@ -46,7 +46,7 @@ model TestRun {
   id         String   @id @default(cuid())
   testCaseId String
   testCase   TestCase @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
-  status     String // PASS, FAIL, RUNNING
+  status     String // PASS, FAIL, RUNNING, CANCELLED
   result     String? // JSON string of result details
   error      String?
   createdAt  DateTime @default(now())
