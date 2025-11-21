@@ -21,7 +21,10 @@ interface TestResult {
   error?: string;
 }
 
+import { useAuth } from './auth-provider';
+
 export default function Home() {
+  const { login, logout, isLoggedIn, user, isLoading: isAuthLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<TestResult>({
     status: 'IDLE',
@@ -29,6 +32,7 @@ export default function Home() {
   });
 
   const handleRunTest = async (data: TestData) => {
+    // ... (keep existing handleRunTest logic)
     setIsLoading(true);
     setResult({
       status: 'RUNNING',
@@ -131,13 +135,40 @@ export default function Home() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 rounded-md border border-green-200">
-                <div className="w-2 h-2 bg-green-500 rounded-full" />
-                <span className="text-green-700 text-xs font-medium">Online</span>
-              </div>
-              <div className="px-3 py-1.5 bg-gray-100 rounded-md border border-gray-200">
-                <span className="text-gray-600 text-xs font-medium">v1.0.0</span>
+            <div className="flex items-center gap-4">
+              {!isAuthLoading && (
+                <>
+                  {isLoggedIn ? (
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-gray-600">
+                        {user?.email || 'User'}
+                      </span>
+                      <button
+                        onClick={() => logout()}
+                        className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 transition-colors"
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => login()}
+                      className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary/90 transition-colors shadow-sm"
+                    >
+                      Login
+                    </button>
+                  )}
+                </>
+              )}
+              <div className="h-6 w-px bg-gray-200" />
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 rounded-md border border-green-200">
+                  <div className="w-2 h-2 bg-green-500 rounded-full" />
+                  <span className="text-green-700 text-xs font-medium">Online</span>
+                </div>
+                <div className="px-3 py-1.5 bg-gray-100 rounded-md border border-gray-200">
+                  <span className="text-gray-600 text-xs font-medium">v1.0.0</span>
+                </div>
               </div>
             </div>
           </div>

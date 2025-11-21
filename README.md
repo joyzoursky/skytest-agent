@@ -33,14 +33,20 @@ npm install
 
 3. Set up environment variables:
 ```bash
-cp .env.example .env
+cp .env.example .env.local
 ```
 
-4. Edit `.env` and add your API key:
+4. Edit `.env.local` and add your API keys:
 ```
+# AI Configuration
 OPENAI_BASE_URL=https://openrouter.ai/api/v1
 OPENAI_API_KEY=your_api_key_here
 MIDSCENE_MODEL_NAME=google/gemini-2.5-flash
+
+# Authgear Configuration
+NEXT_PUBLIC_AUTHGEAR_CLIENT_ID=your_client_id
+NEXT_PUBLIC_AUTHGEAR_ENDPOINT=your_endpoint
+NEXT_PUBLIC_AUTHGEAR_REDIRECT_URI=http://localhost:3000/auth-redirect
 ```
 
 ### Running the App
