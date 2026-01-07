@@ -36,14 +36,13 @@ export default function Breadcrumbs({ items }: BreadcrumbsProps) {
                         </svg>
 
                         {isLast || !item.href ? (
-                            <span className="text-gray-900 font-medium truncate max-w-[200px]" title={item.label}>
+                            <span className="text-gray-900 font-medium">
                                 {item.label}
                             </span>
                         ) : (
                             <Link
                                 href={item.href}
-                                className="text-gray-500 hover:text-gray-700 transition-colors truncate max-w-[200px]"
-                                title={item.label}
+                                className="text-gray-500 hover:text-gray-700 transition-colors"
                             >
                                 {item.label}
                             </Link>

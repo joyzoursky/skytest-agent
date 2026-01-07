@@ -34,8 +34,20 @@ export default function HistoryPage({ params }: { params: Promise<{ id: string }
     }, [isAuthLoading, isLoggedIn, router]);
 
     useEffect(() => {
-        fetchHistory();
-        fetchTestCaseInfo();
+        const loadData = async () => {
+            setIsLoading(true);
+            try {
+                await Promise.all([fetchHistory(), fetchTestCaseInfo()]);
+            } catch (error) {
+                console.error("Error loading data:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        if (id) {
+            loadData();
+        }
     }, [id]);
 
     const fetchTestCaseInfo = async () => {
@@ -66,8 +78,6 @@ export default function HistoryPage({ params }: { params: Promise<{ id: string }
             }
         } catch (error) {
             console.error("Failed to fetch history", error);
-        } finally {
-            setIsLoading(false);
         }
     };
 

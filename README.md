@@ -1,100 +1,66 @@
-# 🤖 Web AutoTest Agent
+# Web AutoTest Agent
 
-An autonomous web testing application powered by AI. Write test scenarios in plain English and watch the AI agent navigate, interact, and validate your web applications automatically.
+AI-powered web testing application. Write test scenarios in plain English and watch the AI agent execute them automatically.
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Next.js](https://img.shields.io/badge/Next.js-16-black)
-![Prisma](https://img.shields.io/badge/Prisma-7.0-blue)
-![Midscene.js](https://img.shields.io/badge/Midscene.js-0.30-orange)
+## Features
 
-## ✨ Features
+- Natural language test descriptions
+- Real-time execution with live logs
+- Project and test case management
+- Test history tracking
 
-- **Natural Language Testing**: Describe test steps in plain English (e.g., "Click the login button and verify the dashboard header").
-- **Real-time Execution**: Watch the AI agent work in real-time with live logs and visual snapshots.
-- **AI-Powered Automation**: Leverages Midscene.js for intelligent element interaction and visual verification.
-- **Project Management**: Organize your test cases into projects and track historical test runs.
-- **Modern UI**: A sleek, responsive dashboard built with Tailwind CSS.
+## Tech Stack
 
-## 🛠 Tech Stack
+- [Next.js 16](https://nextjs.org/) - Framework
+- [Midscene.js](https://midscenejs.com/) - AI agent
+- [Playwright](https://playwright.dev/) - Browser automation
+- [Prisma](https://www.prisma.io/) + SQLite - Database
+- [Authgear](https://www.authgear.com/) - Authentication
 
-- **Framework**: [Next.js 16](https://nextjs.org/) (App Router)
-- **AI Agent**: [Midscene.js](https://midscenejs.com/)
-- **Browser Automation**: [Playwright](https://playwright.dev/)
-- **Database**: [SQLite](https://www.sqlite.org/) with [Prisma ORM](https://www.prisma.io/)
-- **Authentication**: [Authgear](https://www.authgear.com/)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- An API Key for an LLM provider (OpenRouter, OpenAI, etc.)
-- An Authgear account (or configure your own auth provider)
-
-### Installation
-
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/yourusername/web-autotest-agent.git
-   cd web-autotest-agent
-   ```
-
-2. **Install dependencies**:
-   ```bash
-   npm install
-   ```
-
-3. **Set up Environment Variables**:
-   Copy the example environment file and fill in your credentials:
-   ```bash
-   cp .env.example .env.local
-   ```
-   *Required Keys:* `OPENAI_API_KEY`, `NEXT_PUBLIC_AUTHGEAR_CLIENT_ID`, `NEXT_PUBLIC_AUTHGEAR_ENDPOINT`.
-
-4. **Initialize the Database**:
-   ```bash
-   npx prisma db push
-   ```
-
-### Running the Application
+## Quick Start
 
 ```bash
+# Install
+npm install
+npx playwright install
+
+# Configure
+cp .env.example .env.local
+# Edit .env.local with your credentials
+
+# Setup database
+npx prisma db push
+
+# Run
 npm run dev
 ```
-Open [http://localhost:3000](http://localhost:3000) to start testing.
 
-## 📝 Usage Guide
+Open http://localhost:3000 and sign in.
 
-1. **Create a Project**: Group your test cases by application or feature set.
-2. **Add a Test Case**:
-   - **URL**: The starting page for the test.
-   - **Prompt**: Your instructions in plain English.
-   - **Credentials**: (Optional) Provide login info if needed for the test flow.
-3. **Execute**: Click **Deploy Test Agent** and monitor the results in the interactive viewer.
+## Configuration
 
-### Example Prompt
-```text
-1. Login with the user credentials.
-2. Search for "Mechanical Keyboard" in the search bar.
-3. Click on the first result.
-4. Verify that the product price is visible.
-```
+You need:
+- **AI API Key**: Get from [OpenRouter](https://openrouter.ai/)
+- **Authgear**: Create an app at [Authgear Portal](https://portal.authgear.com/)
 
-## 🔒 Security & Privacy
+Edit `.env.local` with your credentials. See `.env.example` for details.
 
-- **API Keys**: Never commit your `.env.local` file. It is included in `.gitignore` by default.
-- **Password Safety**: Test case passwords are stored in the database. For security, do not use real-world sensitive passwords for automated tests.
-- **Data Persistence**: By default, data is stored in a local `dev.db` file.
+## Supported Models
 
-## 📂 Project Structure
+Recommended:
+- `bytedance-seed/seed-1.6-flash` - Fast and cost-effective
+- `google/gemini-2.5-flash` - Reliable and affordable
 
-- `src/app/`: Next.js pages and API routes.
-- `src/components/`: Reusable React components.
-- `src/lib/`: Shared utilities and Prisma client.
-- `prisma/`: Database schema and migrations.
-- `midscene_run/`: Reports and logs from AI test runs (ignored by git).
+## Troubleshooting
 
-## 📄 License
+**Browsers not found**: Run `npx playwright install`
 
-Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
+**Database errors**: Run `rm -f dev.db && npx prisma db push`
+
+**Auth issues**: Check Authgear credentials and redirect URI
+
+**View database**: Run `npx prisma studio`
+
+## License
+
+MIT

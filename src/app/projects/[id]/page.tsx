@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import LoadingSkeleton from "@/components/LoadingSkeleton";
 import Modal from "@/components/Modal";
-import Tooltip from "@/components/Tooltip";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { formatDateTimeCompact } from "@/utils/dateFormatter";
 
@@ -20,6 +19,8 @@ interface TestCase {
     name: string;
     url: string;
     prompt: string;
+    steps: string | null;
+    browserConfig: string | null;
     updatedAt: string;
     testRuns: TestRun[];
 }
@@ -156,9 +157,22 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                                 <div key={testCase.id} className="flex flex-col md:grid md:grid-cols-12 gap-4 p-4 hover:bg-gray-50 transition-colors group">
                                     <div className="md:col-span-5">
                                         <div className="font-medium text-gray-900">{testCase.name}</div>
-                                        <Tooltip content={testCase.url}>
-                                            <div className="text-xs text-gray-500 truncate mt-1 cursor-help">{testCase.url}</div>
-                                        </Tooltip>
+                                        {(() => {
+                                            // Check if test case is multi-browser mode
+                                            const hasSteps = testCase.steps && testCase.steps.length > 0;
+                                            const hasBrowserConfig = testCase.browserConfig && testCase.browserConfig.length > 0;
+                                            const isMultiBrowser = hasSteps || hasBrowserConfig;
+
+                                            if (isMultiBrowser) {
+                                                return (
+                                                    <div className="text-xs text-gray-500 mt-1">multi-browser</div>
+                                                );
+                                            } else {
+                                                return (
+                                                    <div className="text-xs text-gray-500 mt-1">single-browser</div>
+                                                );
+                                            }
+                                        })()}
                                     </div>
                                     <div className="flex items-center gap-4 md:contents">
                                         <div className="md:col-span-3 flex items-center">

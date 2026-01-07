@@ -14,6 +14,8 @@ export async function GET(
                 name: true,
                 url: true,
                 prompt: true,
+                steps: true,
+                browserConfig: true,
                 username: true,
                 password: true,
                 projectId: true,
@@ -26,7 +28,14 @@ export async function GET(
             return NextResponse.json({ error: 'Test case not found' }, { status: 404 });
         }
 
-        return NextResponse.json(testCase);
+        // Parse JSON strings if needed
+        const parsedTestCase = {
+            ...testCase,
+            steps: testCase.steps ? JSON.parse(testCase.steps) : undefined,
+            browserConfig: testCase.browserConfig ? JSON.parse(testCase.browserConfig) : undefined,
+        };
+
+        return NextResponse.json(parsedTestCase);
     } catch (error) {
         console.error('Failed to fetch test case:', error);
         return NextResponse.json({ error: 'Failed to fetch test case' }, { status: 500 });
@@ -41,7 +50,10 @@ export async function PUT(
     try {
         const { id } = await params;
         const body = await request.json();
-        const { name, url, prompt, username, password } = body;
+        const { name, url, prompt, steps, browserConfig, username, password } = body;
+
+        const hasSteps = steps && Array.isArray(steps) && steps.length > 0;
+        const hasBrowserConfig = browserConfig && Object.keys(browserConfig).length > 0;
 
         const testCase = await prisma.testCase.update({
             where: { id },
@@ -49,6 +61,8 @@ export async function PUT(
                 name,
                 url,
                 prompt,
+                steps: hasSteps ? JSON.stringify(steps) : undefined,
+                browserConfig: hasBrowserConfig ? JSON.stringify(browserConfig) : undefined,
                 username,
                 password,
             },

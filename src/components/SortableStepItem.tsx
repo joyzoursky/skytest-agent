@@ -1,0 +1,139 @@
+'use client';
+
+import { TestStep } from '@/types';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+interface BrowserEntry {
+    id: string;
+    config: {
+        url: string;
+        username?: string;
+        password?: string;
+    };
+}
+
+interface SortableStepItemProps {
+    step: TestStep;
+    index: number;
+    browsers: BrowserEntry[];
+    onRemove: () => void;
+    onChange: (field: keyof TestStep, value: string) => void;
+    mode: 'simple' | 'builder';
+    readOnly?: boolean;
+}
+
+export default function SortableStepItem({ step, index, browsers, onRemove, onChange, mode, readOnly }: SortableStepItemProps) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: step.id, disabled: readOnly });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 10 : 1,
+        opacity: isDragging ? 0.8 : 1,
+    };
+
+    // Find which index browser uses this target to get color
+    const browserIndex = browsers.findIndex(b => b.id === step.target);
+    const safeIndex = browserIndex >= 0 ? browserIndex : 0;
+    const colorsLight = ['bg-blue-50', 'bg-purple-50', 'bg-orange-50', 'bg-green-50', 'bg-pink-50'];
+    const colorsText = ['text-blue-700', 'text-purple-700', 'text-orange-700', 'text-green-700', 'text-pink-700'];
+    const colorsBorder = ['border-blue-200', 'border-purple-200', 'border-orange-200', 'border-green-200', 'border-pink-200'];
+
+    const colorLight = colorsLight[safeIndex % colorsLight.length];
+    const colorText = colorsText[safeIndex % colorsText.length];
+    const colorBorder = colorsBorder[safeIndex % colorsBorder.length];
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={style}
+            className="group relative p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:border-indigo-200 hover:shadow-md transition-all"
+        >
+            <div className="flex items-center gap-3 mb-3">
+                {/* Drag Handle */}
+                {!readOnly && (
+                    <div
+                        {...attributes}
+                        {...listeners}
+                        className="cursor-move p-1 text-gray-300 hover:text-gray-500 hover:bg-gray-100 rounded"
+                        aria-label="Drag step"
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </div>
+                )}
+
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-xs font-mono text-gray-500 font-bold">
+                    {index + 1}
+                </span>
+
+                {/* Browser Select */}
+                <div className="relative">
+                    <select
+                        value={step.target}
+                        onChange={(e) => onChange('target', e.target.value)}
+                        disabled={readOnly}
+                        className={`text-xs font-bold uppercase tracking-wider pl-3 pr-8 py-1.5 rounded-md border appearance-none ${readOnly ? 'cursor-not-allowed opacity-80' : 'cursor-pointer focus:ring-2 focus:ring-offset-1'} ${colorLight} ${colorText} ${colorBorder}`}
+                        onPointerDown={(e) => e.stopPropagation()}
+                    >
+                        {browsers.map(b => (
+                            <option key={b.id} value={b.id}>
+                                {b.id.startsWith('browser_')
+                                    ? b.id.replace('browser_', 'Browser ').toUpperCase()
+                                    : b.id}
+                            </option>
+                        ))}
+                    </select>
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <svg className={`w-3 h-3 ${colorText}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+                </div>
+
+                {!readOnly && (
+                    <button
+                        type="button"
+                        onClick={onRemove}
+                        className="ml-auto text-gray-300 hover:text-red-500 p-1 rounded-full hover:bg-red-50 transition-colors"
+                        aria-label="Remove step"
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                )}
+            </div>
+
+            <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Action Instructions</label>
+                <textarea
+                    value={step.action}
+                    onChange={(e) => {
+                        onChange('action', e.target.value);
+                        e.target.style.height = 'auto';
+                        e.target.style.height = e.target.scrollHeight + 'px';
+                    }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
+                    placeholder="Describe the action to perform..."
+                    className="w-full text-sm border-gray-200 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 min-h-[80px] py-3 px-3 resize-none bg-gray-50 focus:bg-white transition-colors disabled:bg-gray-100 disabled:text-gray-600"
+                    required={mode === 'builder'}
+                    rows={3}
+                    disabled={readOnly}
+                />
+            </div>
+        </div>
+    );
+}
+
+export type { BrowserEntry, SortableStepItemProps };

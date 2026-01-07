@@ -32,10 +32,15 @@ export async function POST(
     try {
         const { id } = await params;
         const body = await request.json();
-        const { name, url, prompt, username, password } = body;
+        const { name, url, prompt, steps, browserConfig, username, password } = body;
 
-        if (!name || !url || !prompt) {
-            return NextResponse.json({ error: 'Name, URL, and Prompt are required' }, { status: 400 });
+        // Validation: Name and URL are required.
+        // Prompt is required ONLY if steps are missing/empty.
+        const hasSteps = steps && Array.isArray(steps) && steps.length > 0;
+        const hasBrowserConfig = browserConfig && Object.keys(browserConfig).length > 0;
+
+        if (!name || !url || (!prompt && !hasSteps)) {
+            return NextResponse.json({ error: 'Name, URL, and either Prompt or Steps are required' }, { status: 400 });
         }
 
         const testCase = await prisma.testCase.create({
@@ -43,6 +48,8 @@ export async function POST(
                 name,
                 url,
                 prompt,
+                steps: hasSteps ? JSON.stringify(steps) : undefined,
+                browserConfig: hasBrowserConfig ? JSON.stringify(browserConfig) : undefined,
                 username,
                 password,
                 projectId: id,
