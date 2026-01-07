@@ -7,6 +7,7 @@ import { useAuth } from "../auth-provider";
 import TestForm from "@/components/TestForm";
 import ResultViewer from "@/components/ResultViewer";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import { TestStep, BrowserConfig, TestEvent } from "@/types";
 
 interface TestData {
     url: string;
@@ -14,11 +15,13 @@ interface TestData {
     password?: string;
     prompt: string;
     name?: string;
+    steps?: TestStep[];
+    browserConfig?: Record<string, BrowserConfig>;
 }
 
 interface TestResult {
     status: 'IDLE' | 'RUNNING' | 'PASS' | 'FAIL' | 'CANCELLED';
-    events: any[];
+    events: TestEvent[];
     error?: string;
 }
 
@@ -40,6 +43,8 @@ function RunPageContent() {
     const testCaseId = searchParams.get("testCaseId");
     const testCaseName = searchParams.get("name");
     const [initialData, setInitialData] = useState<TestData | undefined>(undefined);
+    const [originalName, setOriginalName] = useState<string | null>(null);
+    const [originalMode, setOriginalMode] = useState<'simple' | 'builder' | null>(null);
 
     useEffect(() => {
         if (!isAuthLoading && !isLoggedIn) {
@@ -81,34 +86,32 @@ function RunPageContent() {
             // Pre-fill just the name for new runs from test case page
             setInitialData({ name: testCaseName, url: '', prompt: '' });
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [testCaseId, testCaseName]);
 
     const fetchTestCase = async (id: string) => {
         try {
-            // We can reuse the project test cases API or create a specific one.
-            // For now, let's assume we can get details from the list or add a detail endpoint.
-            // Actually, we implemented PUT /api/test-cases/[id] which implies we can also GET it if we add GET method.
-            // But wait, we didn't implement GET /api/test-cases/[id].
-            // Let's just implement a quick fetch here or assume the user knows what they are doing.
-            // To be proper, I should have added GET /api/test-cases/[id].
-            // For now, I will skip prefilling if I can't easily get it, OR I can quickly add the GET endpoint.
-            // Let's add the GET endpoint in a separate step if needed, but for now let's try to proceed without it 
-            // or assume the user will fill it. 
-            // WAIT, the requirement says "with the saved info prefilled".
-            // I need to implement GET /api/test-cases/[id].
-
-            // I will implement the GET endpoint in the same file as PUT/DELETE in a moment.
-            // For now, let's assume it exists.
             const response = await fetch(`/api/test-cases/${id}`);
             if (response.ok) {
                 const data = await response.json();
+                const hasSteps = data.steps && data.steps.length > 0;
+                const hasBrowserConfig = data.browserConfig && Object.keys(data.browserConfig).length > 0;
+                const mode = (hasSteps || hasBrowserConfig) ? 'builder' : 'simple';
+
                 setInitialData({
                     name: data.name,
                     url: data.url,
                     prompt: data.prompt,
                     username: data.username || "",
                     password: data.password || "",
+                    steps: data.steps,
+                    browserConfig: data.browserConfig,
                 });
+
+                // Store original values to detect changes
+                setOriginalName(data.name);
+                setOriginalMode(mode);
+
                 // Store the projectId from the test case for back navigation
                 setProjectIdFromTestCase(data.projectId);
                 // Fetch project name for breadcrumb
@@ -138,7 +141,7 @@ function RunPageContent() {
         }
     };
 
-    const eventsRef = useRef<any[]>([]);
+    const eventsRef = useRef<TestEvent[]>([]);
 
     const handleRunTest = async (data: TestData) => {
         const controller = new AbortController();
@@ -154,10 +157,20 @@ function RunPageContent() {
 
         let activeTestCaseId = testCaseId;
 
+        // Detect current mode from the data
+        const hasSteps = data.steps && data.steps.length > 0;
+        const hasBrowserConfig = data.browserConfig && Object.keys(data.browserConfig).length > 0;
+        const currentMode = (hasSteps || hasBrowserConfig) ? 'builder' : 'simple';
+
+        // Check if name or mode has changed - if so, create a new test case
+        const nameChanged = originalName && data.name && data.name !== originalName;
+        const modeChanged = originalMode && currentMode !== originalMode;
+        const shouldCreateNew = nameChanged || modeChanged;
+
         // 1. Create or Update Test Case (ALWAYS do this before running the test)
         try {
-            if (activeTestCaseId) {
-                // Update existing test case
+            if (activeTestCaseId && !shouldCreateNew) {
+                // Update existing test case (only if name and mode haven't changed)
                 const updateResponse = await fetch(`/api/test-cases/${activeTestCaseId}`, {
                     method: "PUT",
                     headers: { "Content-Type": "application/json" },
@@ -166,26 +179,34 @@ function RunPageContent() {
                 if (!updateResponse.ok) {
                     console.error("Failed to update test case");
                 }
-            } else if (projectId && data.name) {
-                // Create new test case FIRST, before running the test
-                const response = await fetch(`/api/projects/${projectId}/test-cases`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(data),
-                });
-                if (response.ok) {
-                    const newTestCase = await response.json();
-                    activeTestCaseId = newTestCase.id;
-                    setCurrentTestCaseId(activeTestCaseId);
-                    // Update URL without reload so we can save to this test case even if cancelled
-                    window.history.replaceState(null, "", `?testCaseId=${activeTestCaseId}&projectId=${projectId}`);
-                } else {
-                    // If we can't create the test case, don't continue
-                    const errorText = await response.text();
-                    console.error("Failed to create test case:", errorText);
-                    setResult({ status: 'FAIL', events: [], error: `Failed to create test case: ${response.statusText}` });
-                    setIsLoading(false);
-                    return;
+            } else if ((activeTestCaseId && shouldCreateNew) || (!activeTestCaseId && projectId && data.name)) {
+                // Create new test case if:
+                // 1. Editing existing but name/mode changed, OR
+                // 2. Creating completely new test case
+                const effectiveProjectId = projectId || projectIdFromTestCase;
+                if (effectiveProjectId) {
+                    const response = await fetch(`/api/projects/${effectiveProjectId}/test-cases`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(data),
+                    });
+                    if (response.ok) {
+                        const newTestCase = await response.json();
+                        activeTestCaseId = newTestCase.id;
+                        setCurrentTestCaseId(activeTestCaseId);
+                        // Update URL without reload so we can save to this test case even if cancelled
+                        window.history.replaceState(null, "", `?testCaseId=${activeTestCaseId}&projectId=${effectiveProjectId}`);
+                        // Update original values to prevent duplicate creation
+                        setOriginalName(data.name || null);
+                        setOriginalMode(currentMode);
+                    } else {
+                        // If we can't create the test case, don't continue
+                        const errorText = await response.text();
+                        console.error("Failed to create test case:", errorText);
+                        setResult({ status: 'FAIL', events: [], error: `Failed to create test case: ${response.statusText}` });
+                        setIsLoading(false);
+                        return;
+                    }
                 }
             }
             // If no projectId and no testCaseId, we can't save the test, but allow it to run anyway
@@ -211,8 +232,8 @@ function RunPageContent() {
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let buffer = '';
-            let finalStatus = 'FAIL';
-            let finalEvents: any[] = [];
+            let finalStatus: string | null = null;
+            let finalEvents: TestEvent[] = [];
 
             while (true) {
                 const { done, value } = await reader.read();
@@ -248,7 +269,16 @@ function RunPageContent() {
                 }
             }
 
-            // 3. Save Test Run Result
+            // Check if we finished without a final status
+            if (!finalStatus) {
+                // Stream ended but we didn't get a status event.
+                // This usually means timeout or server crash.
+                finalStatus = 'FAIL';
+                const errorMsg = 'Test run terminated unexpectedly (possibly timed out)';
+                setResult(prev => ({ ...prev, status: 'FAIL', error: errorMsg }));
+            }
+
+            // 3. Save Test Run Result with test configuration snapshot
             if (activeTestCaseId) {
                 await fetch(`/api/test-cases/${activeTestCaseId}/run`, {
                     method: "POST",
@@ -257,6 +287,7 @@ function RunPageContent() {
                         status: finalStatus,
                         result: finalEvents,
                         error: result.error,
+                        testConfig: data, // Save the test configuration that was actually run
                     }),
                 });
             }
@@ -276,6 +307,7 @@ function RunPageContent() {
                             status: 'CANCELLED',
                             result: cancelledEvents,
                             error: 'Test was cancelled by user',
+                            testConfig: data, // Save the test configuration that was run
                         }),
                     }).catch(err => console.error('Failed to save cancelled run:', err));
                 }
@@ -292,6 +324,7 @@ function RunPageContent() {
                             status: 'FAIL',
                             result: [],
                             error: errorMessage,
+                            testConfig: data, // Save the test configuration that was run
                         }),
                     });
                 }
@@ -301,18 +334,7 @@ function RunPageContent() {
         }
     };
 
-    const handleSampleData = () => {
-        setInitialData({
-            name: "Sample E-commerce Test",
-            url: "https://www.saucedemo.com",
-            username: "standard_user",
-            password: "secret_sauce",
-            prompt: `Login with the provided credentials.
-Add the "Sauce Labs Backpack" to the cart.
-Click on the cart icon.
-Verify that "Sauce Labs Backpack" is in the cart.`
-        });
-    };
+
 
     if (isAuthLoading) return null;
 
@@ -340,17 +362,6 @@ Verify that "Sauce Labs Backpack" is in the cart.`
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
                             </svg>
                             Stop Test
-                        </button>
-                    )}
-                    {!testCaseId && result.status !== 'RUNNING' && (
-                        <button
-                            onClick={handleSampleData}
-                            className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors flex items-center gap-2"
-                        >
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                            </svg>
-                            Test with Sample Data
                         </button>
                     )}
                 </div>

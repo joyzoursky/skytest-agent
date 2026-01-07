@@ -34,7 +34,9 @@ model TestCase {
   projectId String
   project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   url       String
-  prompt    String
+  prompt    String?
+  steps     String?   // JSON string of steps
+  browserConfig String? // JSON string of browser configuration
   username  String?
   password  String?
   testRuns  TestRun[]
@@ -43,11 +45,12 @@ model TestCase {
 }
 
 model TestRun {
-  id         String   @id @default(cuid())
-  testCaseId String
-  testCase   TestCase @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
-  status     String // PASS, FAIL, RUNNING, CANCELLED
-  result     String? // JSON string of result details
-  error      String?
-  createdAt  DateTime @default(now())
+  id                      String   @id @default(cuid())
+  testCaseId              String
+  testCase                TestCase @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  status                  String // PASS, FAIL, RUNNING, CANCELLED
+  result                  String? // JSON string of result details
+  error                   String?
+  configurationSnapshot   String? // JSON string of test configuration snapshot at run time
+  createdAt               DateTime @default(now())
 }

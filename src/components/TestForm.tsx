@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { TestStep, BrowserConfig } from '@/types';
+import SimpleForm from './SimpleForm';
+import BuilderForm from './BuilderForm';
 
 interface TestData {
     url: string;
@@ -8,6 +11,8 @@ interface TestData {
     password?: string;
     prompt: string;
     name?: string;
+    steps?: TestStep[];
+    browserConfig?: Record<string, BrowserConfig>;
 }
 
 interface TestFormProps {
@@ -15,42 +20,191 @@ interface TestFormProps {
     isLoading: boolean;
     initialData?: TestData;
     showNameInput?: boolean;
+    readOnly?: boolean;
 }
 
-export default function TestForm({ onSubmit, isLoading, initialData, showNameInput }: TestFormProps) {
-    const [name, setName] = useState('');
-    const [url, setUrl] = useState('');
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
-    const [prompt, setPrompt] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
+interface BrowserEntry {
+    id: string;
+    config: BrowserConfig;
+}
 
+export default function TestForm({ onSubmit, isLoading, initialData, showNameInput, readOnly }: TestFormProps) {
+    const [name, setName] = useState(() => initialData?.name || '');
+    const [prompt, setPrompt] = useState(() => initialData?.prompt || '');
 
+    // Mode
+    const [mode, setMode] = useState<'simple' | 'builder'>(() => {
+        if (!initialData) return 'simple';
+        const hasSteps = initialData.steps && initialData.steps.length > 0;
+        const hasBrowserConfig = initialData.browserConfig && Object.keys(initialData.browserConfig).length > 0;
+        return (hasSteps || hasBrowserConfig) ? 'builder' : 'simple';
+    });
+
+    // Simple Mode Data
+    const [simpleUrl, setSimpleUrl] = useState(() => initialData?.url || '');
+    const [simpleUsername, setSimpleUsername] = useState(() => initialData?.username || '');
+    const [simplePassword, setSimplePassword] = useState(() => initialData?.password || '');
+    const [showSimplePassword, setShowSimplePassword] = useState(false);
+
+    // Builder Mode Data
+    const [browsers, setBrowsers] = useState<BrowserEntry[]>(() => {
+        if (initialData?.browserConfig) {
+            return Object.entries(initialData.browserConfig).map(([id, config]) => ({ id, config }));
+        }
+        return [{
+            id: 'browser_a',
+            config: {
+                url: initialData?.url || '',
+                username: initialData?.username || '',
+                password: initialData?.password || ''
+            }
+        }];
+    });
+
+    const [steps, setSteps] = useState<TestStep[]>(() => initialData?.steps || []);
+    const [showPasswordMap, setShowPasswordMap] = useState<Record<string, boolean>>({});
+
+    // Update state when initialData changes
     useEffect(() => {
         if (initialData) {
             if (initialData.name) setName(initialData.name);
-            if (initialData.url) setUrl(initialData.url);
-            if (initialData.username) setUsername(initialData.username);
-            if (initialData.password) setPassword(initialData.password);
             if (initialData.prompt) setPrompt(initialData.prompt);
+
+            const hasSteps = initialData.steps && initialData.steps.length > 0;
+            const hasBrowserConfig = initialData.browserConfig && Object.keys(initialData.browserConfig).length > 0;
+
+            if (hasSteps || hasBrowserConfig) {
+                setMode('builder');
+                if (initialData.browserConfig) {
+                    setBrowsers(Object.entries(initialData.browserConfig).map(([id, config]) => ({ id, config })));
+                } else if (!initialData.browserConfig && hasSteps) {
+                    const defaultConfig = {
+                        url: initialData.url || '',
+                        username: initialData.username || '',
+                        password: initialData.password || ''
+                    };
+                    setBrowsers([{ id: 'browser_a', config: defaultConfig }]);
+                }
+
+                if (initialData.steps) setSteps(initialData.steps);
+            } else {
+                setMode('simple');
+                if (initialData.url) setSimpleUrl(initialData.url);
+                if (initialData.username) setSimpleUsername(initialData.username);
+                if (initialData.password) setSimplePassword(initialData.password);
+            }
         }
     }, [initialData]);
 
+    const handleLoadSampleData = () => {
+        if (mode === 'simple') {
+            setName('Simple Login Test');
+            setSimpleUrl('https://www.saucedemo.com');
+            setSimpleUsername('standard_user');
+            setSimplePassword('secret_sauce');
+            setPrompt(`Login with the provided credentials.
+Add the "Sauce Labs Backpack" to the cart.
+Click on the cart icon.
+Verify that "Sauce Labs Backpack" is in the cart.`);
+        } else {
+            setName('Cross-Browser Session Isolation');
+            setBrowsers([
+                { id: 'browser_a', config: { url: 'https://www.saucedemo.com', username: 'standard_user', password: 'secret_sauce' } },
+                { id: 'browser_b', config: { url: 'https://www.saucedemo.com', username: 'visual_user', password: 'secret_sauce' } }
+            ]);
+            setSteps([
+                { id: "1", target: "browser_a", action: "Login with the provided credentials." },
+                { id: "2", target: "browser_b", action: "Login with the provided credentials." },
+                { id: "3", target: "browser_a", action: "Add 'Sauce Labs Backpack' to cart" },
+                { id: "4", target: "browser_b", action: "Add 'Sauce Labs Bike Light' to cart" },
+                { id: "5", target: "browser_a", action: "Click on the cart icon.\nVerify ONLY 'Sauce Labs Backpack' is in the cart." },
+                { id: "6", target: "browser_b", action: "Click on the cart icon.\nVerify ONLY 'Sauce Labs Bike Light' is in the cart." }
+            ]);
+        }
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSubmit({ name: showNameInput ? name : undefined, url, username, password, prompt });
+
+        let data: TestData;
+
+        if (mode === 'simple') {
+            data = {
+                name: showNameInput ? name : undefined,
+                url: simpleUrl,
+                prompt: prompt,
+                username: simpleUsername || undefined,
+                password: simplePassword || undefined,
+                steps: undefined,
+                browserConfig: undefined
+            };
+        } else {
+            const browserConfigMap: Record<string, BrowserConfig> = {};
+            browsers.forEach(b => {
+                browserConfigMap[b.id] = b.config;
+            });
+
+            data = {
+                name: showNameInput ? name : undefined,
+                url: browsers[0]?.config.url || '',
+                prompt: '',
+                username: undefined,
+                password: undefined,
+                steps: steps,
+                browserConfig: browserConfigMap
+            };
+        }
+
+        onSubmit(data);
     };
 
     return (
-        <form onSubmit={handleSubmit} className="glass-panel h-[800px] p-6 space-y-6 flex flex-col">
+        <form onSubmit={handleSubmit} className="glass-panel h-[800px] flex flex-col">
             {/* Header */}
-            <div className="pb-4 border-b border-gray-200">
+            <div className={`p-6 ${!readOnly ? 'pb-4 border-b border-gray-200' : 'pb-6'}`}>
                 <h2 className="text-xl font-semibold text-foreground">Test Configuration</h2>
-                <p className="text-sm text-muted-foreground mt-1">Configure your automated test parameters</p>
+                {!readOnly && (
+                    <div className="flex justify-between items-center mt-4">
+                        {/* Mode Toggle */}
+                        <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
+                            <button
+                                type="button"
+                                onClick={() => setMode('simple')}
+                                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${mode === 'simple'
+                                    ? 'bg-white text-gray-900 shadow-sm'
+                                    : 'text-gray-500 hover:text-gray-900'
+                                    }`}
+                            >
+                                Simple Instructions
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setMode('builder')}
+                                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${mode === 'builder'
+                                    ? 'bg-white text-gray-900 shadow-sm'
+                                    : 'text-gray-500 hover:text-gray-900'
+                                    }`}
+                            >
+                                Multi-Browser Flow
+                            </button>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={handleLoadSampleData}
+                            className="text-xs flex items-center gap-1.5 text-purple-600 hover:text-purple-700 font-medium px-3 py-1.5 rounded-lg hover:bg-purple-50 transition-colors"
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            Test with Sample Data
+                        </button>
+                    </div>
+                )}
             </div>
 
-            <div className="flex-1 space-y-5 overflow-y-auto">
-                {/* Test Case Name */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                {/* Common: Test Case Name */}
                 {showNameInput && (
                     <div className="space-y-2">
                         <label className="block text-sm font-medium text-foreground">
@@ -63,120 +217,68 @@ export default function TestForm({ onSubmit, isLoading, initialData, showNameInp
                             placeholder="e.g. Login and Add to Cart"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
+                            disabled={readOnly}
                         />
                     </div>
                 )}
 
-                {/* Target URL */}
-                <div className="space-y-2">
-                    <label className="block text-sm font-medium text-foreground">
-                        Target URL
-                    </label>
-                    <input
-                        type="url"
-                        required
-                        className="input-field"
-                        placeholder="https://app.example.com"
-                        value={url}
-                        onChange={(e) => setUrl(e.target.value)}
+                {mode === 'simple' ? (
+                    <SimpleForm
+                        url={simpleUrl}
+                        setUrl={setSimpleUrl}
+                        username={simpleUsername}
+                        setUsername={setSimpleUsername}
+                        password={simplePassword}
+                        setPassword={setSimplePassword}
+                        showPassword={showSimplePassword}
+                        setShowPassword={setShowSimplePassword}
+                        prompt={prompt}
+                        setPrompt={setPrompt}
+                        readOnly={readOnly}
                     />
-                </div>
-
-                {/* Credentials */}
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <label className="block text-sm font-medium text-foreground">
-                            Username <span className="text-gray-400 font-normal">(Optional)</span>
-                        </label>
-                        <input
-                            type="text"
-                            className="input-field"
-                            placeholder="username"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <label className="block text-sm font-medium text-foreground">
-                            Password <span className="text-gray-400 font-normal">(Optional)</span>
-                        </label>
-                        <div className="relative">
-                            <input
-                                type="text"
-                                className={`input-field pr-10 ${!showPassword ? 'text-security-disc' : ''}`}
-                                placeholder="secret_sauce"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                autoComplete="off"
-                                data-1p-ignore
-                            />
-                            {password && (
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                                    aria-label={showPassword ? "Hide password" : "Show password"}
-                                >
-                                    {showPassword ? (
-                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                                        </svg>
-                                    ) : (
-                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                        </svg>
-                                    )}
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Test Scenario */}
-                <div className="space-y-2">
-                    <label className="block text-sm font-medium text-foreground">
-                        Test Instructions
-                    </label>
-                    <textarea
-                        required
-                        className="input-field min-h-[200px] resize-y"
-                        placeholder="Enter step-by-step test instructions, for example:&#10;• Login with the provided credentials&#10;• Navigate to the products page&#10;• Add first item to cart&#10;• Verify cart contains the item"
-                        value={prompt}
-                        onChange={(e) => setPrompt(e.target.value)}
+                ) : (
+                    <BuilderForm
+                        browsers={browsers}
+                        setBrowsers={setBrowsers}
+                        steps={steps}
+                        setSteps={setSteps}
+                        showPasswordMap={showPasswordMap}
+                        setShowPasswordMap={setShowPasswordMap}
+                        readOnly={readOnly}
                     />
-                    <p className="text-xs text-muted-foreground">
-                        Provide clear, step-by-step instructions in plain language
-                    </p>
-                </div>
+                )}
             </div>
 
             {/* Submit Button */}
-            <div className="pt-4 flex-shrink-0 border-t border-gray-200">
-                <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="btn-primary w-full flex justify-center items-center gap-2"
-                >
-                    {isLoading ? (
-                        <>
-                            <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            <span>Running Test...</span>
-                        </>
-                    ) : (
-                        <>
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <span>Run Test</span>
-                        </>
-                    )}
-                </button>
-            </div>
+            {!readOnly && (
+                <div className="p-6 pt-4 border-t border-gray-200 bg-white rounded-b-xl">
+                    <button
+                        type="submit"
+                        disabled={isLoading}
+                        className="btn-primary w-full flex justify-center items-center gap-2 h-11 text-base shadow-lg hover:shadow-xl transition-all"
+                    >
+                        {isLoading ? (
+                            <>
+                                <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span>Running Test...</span>
+                            </>
+                        ) : (
+                            <>
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span>Run Test</span>
+                            </>
+                        )}
+                    </button>
+                </div>
+            )}
         </form>
     );
 }
+
+export type { TestData, TestFormProps };

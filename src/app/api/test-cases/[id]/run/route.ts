@@ -8,7 +8,7 @@ export async function POST(
     try {
         const { id } = await params;
         const body = await request.json();
-        const { status, result, error } = body;
+        const { status, result, error, testConfig } = body;
 
         if (!status) {
             return NextResponse.json({ error: 'Status is required' }, { status: 400 });
@@ -20,6 +20,7 @@ export async function POST(
                 status,
                 result: result ? JSON.stringify(result) : null,
                 error,
+                configurationSnapshot: testConfig ? JSON.stringify(testConfig) : null,
             },
         });
 

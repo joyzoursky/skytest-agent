@@ -9,11 +9,26 @@ export interface Project {
     };
 }
 
+
+export interface BrowserConfig {
+    url: string;
+    username?: string;
+    password?: string;
+}
+
+export interface TestStep {
+    id: string; // generated client-side or by index
+    target: string; // Dynamic browser ID (e.g., 'browser_1')
+    action: string;
+}
+
 export interface TestCase {
     id: string;
     name: string;
     url: string;
-    prompt: string;
+    prompt: string; // Kept for backward compatibility, but UI might prefer steps
+    steps?: TestStep[];
+    browserConfig?: Record<string, BrowserConfig>;
     projectId: string;
     username?: string;
     password?: string;
@@ -51,6 +66,7 @@ export interface TestEvent {
     type: TestEventType;
     data: LogData | ScreenshotData;
     timestamp: number;
+    browserId?: string;
 }
 
 // Type guard for LogData

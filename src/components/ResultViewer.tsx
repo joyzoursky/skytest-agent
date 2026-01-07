@@ -2,12 +2,12 @@
 
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
-import { TestRun } from '@/types';
+import { TestRun, TestEvent } from '@/types';
 import TimelineEvent from './result-viewer/TimelineEvent';
 import ResultStatus from './result-viewer/ResultStatus';
 
 interface ResultViewerProps {
-    result: Omit<TestRun, 'id' | 'testCaseId' | 'createdAt'> & { events: any[] };
+    result: Omit<TestRun, 'id' | 'testCaseId' | 'createdAt'> & { events: TestEvent[] };
 }
 
 export default function ResultViewer({ result }: ResultViewerProps) {
@@ -16,32 +16,23 @@ export default function ResultViewer({ result }: ResultViewerProps) {
     const [autoScroll, setAutoScroll] = useState(true);
     const [lightboxImage, setLightboxImage] = useState<{ src: string; label: string } | null>(null);
 
+    // Filtered events (if any needed, but user wants ALL)
+    const events = result.events;
+
     useEffect(() => {
-        if (!autoScroll || !scrollContainerRef.current) return;
-
-        const container = scrollContainerRef.current;
-        const isNearBottom =
-            container.scrollHeight - container.scrollTop - container.clientHeight < 150;
-
-        if (isNearBottom || result.events.length === 0) {
-            // Use requestAnimationFrame for smoother scrolling
-            requestAnimationFrame(() => {
-                container.scrollTo({
-                    top: container.scrollHeight,
-                    behavior: 'smooth'
-                });
+        if (!autoScroll) return;
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTo({
+                top: scrollContainerRef.current.scrollHeight,
+                behavior: 'smooth'
             });
         }
-    }, [result.events, autoScroll]);
+    }, [events.length, autoScroll]); // Trigger on length change
 
-    const handleScroll = () => {
-        if (!scrollContainerRef.current) return;
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const container = e.currentTarget;
+        const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150;
 
-        const container = scrollContainerRef.current;
-        const isNearBottom =
-            container.scrollHeight - container.scrollTop - container.clientHeight < 150;
-
-        // Enable auto-scroll when user scrolls near bottom, disable when scrolling up
         if (isNearBottom && !autoScroll) {
             setAutoScroll(true);
         } else if (!isNearBottom && autoScroll) {
@@ -49,14 +40,14 @@ export default function ResultViewer({ result }: ResultViewerProps) {
         }
     };
 
-    const scrollToBottom = () => {
-        if (!scrollContainerRef.current) return;
-        const container = scrollContainerRef.current;
-        container.scrollTo({
-            top: container.scrollHeight,
-            behavior: 'smooth'
-        });
+    const triggerScrollBottom = () => {
         setAutoScroll(true);
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTo({
+                top: scrollContainerRef.current.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
     };
 
     return (
@@ -64,7 +55,7 @@ export default function ResultViewer({ result }: ResultViewerProps) {
             {/* Lightbox Modal */}
             {lightboxImage && (
                 <div
-                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-90 animate-fade-in"
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 animate-fade-in"
                     onClick={() => setLightboxImage(null)}
                 >
                     <button
@@ -90,11 +81,11 @@ export default function ResultViewer({ result }: ResultViewerProps) {
                 </div>
             )}
 
-            <div className="glass-panel h-full max-h-[800px] flex flex-col relative">
+            <div className="glass-panel h-full max-h-[800px] flex flex-col relative overflow-hidden">
                 {/* Auto-scroll indicator */}
                 {!autoScroll && result.status === 'RUNNING' && (
                     <button
-                        onClick={scrollToBottom}
+                        onClick={triggerScrollBottom}
                         className="absolute bottom-8 right-8 z-50 px-4 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-md shadow-lg flex items-center gap-2 font-medium text-sm transition-colors"
                     >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -105,7 +96,7 @@ export default function ResultViewer({ result }: ResultViewerProps) {
                 )}
 
                 {/* Header */}
-                <div className="p-5 border-b border-gray-200 flex items-center justify-between bg-white rounded-t-lg">
+                <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-white/50 backdrop-blur-sm z-10">
                     <div className="flex items-center gap-3">
                         <h2 className="text-lg font-semibold text-foreground">Test Results</h2>
                         {result.status !== 'IDLE' && (
@@ -128,11 +119,11 @@ export default function ResultViewer({ result }: ResultViewerProps) {
                     </div>
                 </div>
 
-                {/* Content */}
+                {/* Single List View */}
                 <div
                     ref={scrollContainerRef}
                     onScroll={handleScroll}
-                    className="flex-1 overflow-y-auto p-5 space-y-4"
+                    className="flex-1 overflow-y-auto w-full p-6 space-y-4"
                 >
                     {result.status === 'IDLE' ? (
                         <div className="h-full flex flex-col items-center justify-center text-center space-y-6">
@@ -149,38 +140,31 @@ export default function ResultViewer({ result }: ResultViewerProps) {
                             </div>
                         </div>
                     ) : (
-                        <div className="space-y-4 relative">
-                            {result.events.map((event, index) => (
+                        <>
+                            {events.map((event, index) => (
                                 <TimelineEvent
                                     key={index}
                                     event={event}
-                                    isLast={index === result.events.length - 1}
+                                    isLast={index === events.length - 1}
                                     onImageClick={(src, label) => setLightboxImage({ src, label })}
                                 />
                             ))}
 
-                            {/* Running Indicator */}
                             {result.status === 'RUNNING' && (
-                                <div className="relative pl-6 flex items-center gap-2">
-                                    <div className="timeline-dot bg-blue-500 animate-pulse" />
-                                    <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-md">
-                                        <svg className="w-4 h-4 animate-spin text-blue-600" fill="none" viewBox="0 0 24 24">
+                                <div className="relative pl-8 flex items-center gap-2 mt-4 ml-1">
+                                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-500 text-sm">
+                                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                         </svg>
-                                        <span className="text-sm text-blue-700 font-medium">Running test...</span>
+                                        <span>Waiting for events...</span>
                                     </div>
                                 </div>
                             )}
 
-                            <ResultStatus
-                                status={result.status}
-                                error={result.error}
-                                eventCount={result.events.length}
-                            />
-
+                            <ResultStatus status={result.status} error={result.error} eventCount={events.length} />
                             <div ref={messagesEndRef} />
-                        </div>
+                        </>
                     )}
                 </div>
             </div>

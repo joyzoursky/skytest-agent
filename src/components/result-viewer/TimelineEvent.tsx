@@ -87,7 +87,7 @@ export default function TimelineEvent({ event, isLast, onImageClick }: TimelineE
                             style={{ width: '100%', height: 'auto' }}
                             className="rounded-md transition-opacity group-hover:opacity-90"
                         />
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black bg-opacity-30">
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
                             <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-lg">
                                 <svg className="w-5 h-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
