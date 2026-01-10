@@ -333,7 +333,10 @@ function RunPageContent() {
                 body: JSON.stringify({ ...data, testCaseId: activeTestCaseId }),
             });
 
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            }
 
             const { runId, error } = await response.json();
             if (error) throw new Error(error);

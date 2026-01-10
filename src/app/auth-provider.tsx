@@ -17,6 +17,7 @@ interface AuthContextType {
     logout: () => Promise<void>;
     refreshUser: () => Promise<void>;
     getAccessToken: () => Promise<string | null>;
+    openSettings: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -59,6 +60,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         await authgear.startAuthentication({
             redirectURI: process.env.NEXT_PUBLIC_AUTHGEAR_REDIRECT_URI || "",
             prompt: "login" as any,
+            scope: ["openid", "offline_access", "https://authgear.com/scopes/full-userinfo"],
         });
     };
 
@@ -73,12 +75,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const getAccessToken = async () => {
         const authgear = (await import("@authgear/web")).default;
-        // fetch makes sure the access token is valid and refreshed if needed
         return authgear.accessToken || null;
     };
 
+    const openSettings = async () => {
+        const authgear = (await import("@authgear/web")).default;
+        const { Page } = await import("@authgear/web");
+        await authgear.open(Page.Settings, {
+            redirectURI: window.location.href,
+        });
+    };
+
     return (
-        <AuthContext.Provider value={{ isLoggedIn, isLoading, user, login, logout, refreshUser: initAuthgear, getAccessToken }}>
+        <AuthContext.Provider value={{ isLoggedIn, isLoading, user, login, logout, refreshUser: initAuthgear, getAccessToken, openSettings }}>
             {children}
         </AuthContext.Provider>
     );

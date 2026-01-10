@@ -7,34 +7,26 @@ datasource db {
 }
 
 model User {
-  id        String    @id @default(cuid())
-  authId    String    @unique
-  email     String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  projects      Project[]
-  
-  // Credit System
-  role          String   @default("USER") // USER, ADMIN
-  credits       Int      @default(1000)   // Start with 1000 credits
-  
-  // Rate Limiting
-  usageDay      Int      @default(0)
-  usageWeek     Int      @default(0)
-  rateLimitDay  Int      @default(8000)
-  rateLimitWeek Int      @default(50000)
-  lastUsageDate DateTime @default(now())
-
-  transactions  Transaction[]
+  id              String    @id @default(cuid())
+  authId          String    @unique
+  email           String?
+  openRouterKey   String?   // Encrypted OpenRouter API key
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  projects        Project[]
+  usageRecords    UsageRecord[]
 }
 
-model Transaction {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  amount    Int      // Positive (add) or Negative (deduct)
-  type      String   // "USAGE", "ADMIN_ADJUSTMENT", "SIGNUP_BONUS"
-  createdAt DateTime @default(now())
+model UsageRecord {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String   // "TEST_RUN"
+  description String?  // e.g., "Project Name - Test Case Name"
+  aiActions   Int      // Exact number of AI actions executed
+  testRunId   String?  // Reference to test run for linking
+  testRun     TestRun? @relation(fields: [testRunId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
 }
 
 model Project {
@@ -75,4 +67,5 @@ model TestRun {
   startedAt               DateTime?
   completedAt             DateTime?
   createdAt               DateTime @default(now())
+  usageRecords            UsageRecord[]
 }
