@@ -1,4 +1,4 @@
-# Web AutoTest Agent - AI Coding Guidelines
+# SkyTest Agent - AI Coding Guidelines
 
 ## Tech Stack
 - **Frontend**: Next.js 16 (App Router), React 19, TailwindCSS 4
