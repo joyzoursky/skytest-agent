@@ -1,6 +1,7 @@
 'use client';
 
 import { BrowserConfig } from '@/types';
+import { config } from '@/config/app';
 
 interface BrowserEntry {
     id: string;
@@ -96,6 +97,9 @@ export default function BrowserConfigCard({
                     </div>
                 </div>
             </div>
+            <p className="text-xs text-gray-400">
+                Use {config.test.security.credentialPlaceholders.username} and {config.test.security.credentialPlaceholders.password} in AI steps to inject credentials.
+            </p>
         </div>
     );
 }
