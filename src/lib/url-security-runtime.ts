@@ -30,14 +30,23 @@ function setCachedHostnameResult(hostname: string, result: UrlValidationResult):
 }
 
 async function dnsLookupAll(hostname: string): Promise<string[]> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), config.test.security.dnsLookupTimeoutMs);
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const timeoutPromise = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('DNS lookup timed out')), config.test.security.dnsLookupTimeoutMs);
+    });
 
     try {
-        const results = await lookup(hostname, { all: true, verbatim: true, signal: controller.signal });
+        const results = await Promise.race([
+            lookup(hostname, { all: true, verbatim: true }),
+            timeoutPromise
+        ]);
+
         return results.map((r) => r.address);
     } finally {
-        clearTimeout(timeout);
+        if (timer) {
+            clearTimeout(timer);
+        }
     }
 }
 
