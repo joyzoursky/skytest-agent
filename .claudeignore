@@ -1,37 +1,40 @@
-# Dependencies & build artifacts
+# Dependencies / build artifacts
 node_modules/
 .next/
-dist/
 out/
+dist/
 coverage/
+
+# Generated/build files
+next-env.d.ts
+*.tsbuildinfo
+*.generated.ts
+
+# Environment files (security)
+.env
+.env.*
+.env.local
+.env.production
+
+# Database files
+*.db
+*.db-journal
+
+# Midscene / Playwright outputs
+midscene_run/
+uploads/
 
 # Lock files (large, not useful for context)
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
 
-# Database files
-*.db
-*.db-journal
-
-# Midscene test outputs
-midscene_run/
-
-# Uploaded test files
-uploads/
-
-# Generated/build files
-tsconfig.tsbuildinfo
-*.generated.ts
-next-env.d.ts
-
-# Environment files (security)
-.env
-.env.local
-.env.production
-
-# Git internals
-.git/
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
 
 # IDE/Editor
 .vscode/
@@ -43,6 +46,5 @@ next-env.d.ts
 .DS_Store
 Thumbs.db
 
-# Logs
-*.log
-npm-debug.log*
+# Git internals
+.git/

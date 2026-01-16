@@ -14,7 +14,7 @@ export interface TestCaseFile {
     storedName: string;
     mimeType: string;
     size: number;
-    createdAt: string;
+    createdAt?: string;
 }
 
 export interface TestStep {
@@ -28,10 +28,10 @@ export interface TestStep {
 }
 
 export interface TestData {
-    url: string;
+    url?: string;
     username?: string;
     password?: string;
-    prompt: string;
+    prompt?: string;
     name?: string;
     steps?: TestStep[];
     browserConfig?: Record<string, BrowserConfig>;
@@ -41,10 +41,10 @@ export interface TestData {
 export interface RunTestOptions {
     runId: string;
     config: {
-        url: string;
+        url?: string;
         username?: string;
         password?: string;
-        prompt: string;
+        prompt?: string;
         steps?: TestStep[];
         browserConfig?: Record<string, BrowserConfig>;
         userId?: string;

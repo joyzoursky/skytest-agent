@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { TestStep, BrowserConfig, TestCaseFile } from '@/types';
+import { config } from '@/config/app';
 import SimpleForm from './SimpleForm';
 import BuilderForm from './BuilderForm';
 
@@ -75,7 +76,10 @@ export default function TestForm({ onSubmit, isLoading, initialData, showNameInp
     const [showPasswordMap, setShowPasswordMap] = useState<Record<string, boolean>>({});
 
     useEffect(() => {
-        if (initialData) {
+        if (!initialData) return;
+
+        // Defer state updates to avoid cascading renders warnings in React strict lint rules.
+        queueMicrotask(() => {
             if (initialData.name) setName(initialData.name);
             if (initialData.prompt) setPrompt(initialData.prompt);
 
@@ -109,20 +113,25 @@ export default function TestForm({ onSubmit, isLoading, initialData, showNameInp
                 if (initialData.username) setSimpleUsername(initialData.username);
                 if (initialData.password) setSimplePassword(initialData.password);
             }
-        }
+        });
     }, [initialData]);
 
     useEffect(() => {
-        if (mode === 'builder' && steps.length === 0) {
-            const newStep: TestStep = {
-                id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
-                target: browsers[0]?.id || 'browser_a',
-                action: '',
-                type: 'ai-action',
-            };
-            setSteps([newStep]);
-        }
-    }, [mode]);
+        if (mode !== 'builder' || steps.length !== 0) return;
+
+        queueMicrotask(() => {
+            setSteps((current) => {
+                if (current.length !== 0) return current;
+                const newStep: TestStep = {
+                    id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
+                    target: browsers[0]?.id || 'browser_a',
+                    action: '',
+                    type: 'ai-action',
+                };
+                return [newStep];
+            });
+        });
+    }, [mode, steps.length, browsers]);
 
     const handleLoadSampleData = () => {
         if (mode === 'simple') {
@@ -130,19 +139,25 @@ export default function TestForm({ onSubmit, isLoading, initialData, showNameInp
             setSimpleUrl('https://www.saucedemo.com');
             setSimpleUsername('standard_user');
             setSimplePassword('secret_sauce');
-            setPrompt(`Login with the given credentials.
+            const usernamePlaceholder = config.test.security.credentialPlaceholders.username;
+            const passwordPlaceholder = config.test.security.credentialPlaceholders.password;
+
+            setPrompt(`Login with username ${usernamePlaceholder} and password ${passwordPlaceholder}.
 Add the "Sauce Labs Backpack" to the cart.
 Click on the cart icon.
 Verify that "Sauce Labs Backpack" is in the cart.`);
         } else {
+            const usernamePlaceholder = config.test.security.credentialPlaceholders.username;
+            const passwordPlaceholder = config.test.security.credentialPlaceholders.password;
+
             setName('Cross-Browser Session Isolation');
             setBrowsers([
                 { id: 'browser_a', config: { url: 'https://www.saucedemo.com', username: 'standard_user', password: 'secret_sauce' } },
                 { id: 'browser_b', config: { url: 'https://www.saucedemo.com', username: 'visual_user', password: 'secret_sauce' } }
             ]);
             setSteps([
-                { id: "1", target: "browser_a", action: "Login with the given credentials." },
-                { id: "2", target: "browser_b", action: "Login with the given credentials." },
+                { id: "1", target: "browser_a", action: `Login with username ${usernamePlaceholder} and password ${passwordPlaceholder}.` },
+                { id: "2", target: "browser_b", action: `Login with username ${usernamePlaceholder} and password ${passwordPlaceholder}.` },
                 { id: "3", target: "browser_a", action: "Add 'Sauce Labs Backpack' to cart" },
                 { id: "4", target: "browser_b", action: "Add 'Sauce Labs Bike Light' to cart" },
                 { id: "5", target: "browser_a", action: "Click on the cart icon.\nVerify ONLY 'Sauce Labs Backpack' is in the cart." },

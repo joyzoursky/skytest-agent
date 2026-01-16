@@ -11,7 +11,11 @@ const logger = createLogger('api:test-cases:id');
 type AuthPayload = NonNullable<Awaited<ReturnType<typeof verifyAuth>>>;
 
 async function resolveUserId(authPayload: AuthPayload): Promise<string | null> {
-    if (authPayload.userId) return authPayload.userId;
+    const maybeUserId = (authPayload as { userId?: unknown }).userId;
+    if (typeof maybeUserId === 'string' && maybeUserId.length > 0) {
+        return maybeUserId;
+    }
+
     const authId = authPayload.sub as string | undefined;
     if (!authId) return null;
     const user = await prisma.user.findUnique({ where: { authId }, select: { id: true } });

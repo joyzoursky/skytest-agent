@@ -208,12 +208,6 @@ export default function SortableStepItem({ step, index, browsers, onRemove, onCh
                                 {validationErrors[0]}
                             </div>
                         )}
-                        <div className="text-xs text-gray-400 mt-1 space-y-2">
-                            <div>
-                                <p className="font-medium">Example (uses Browser Config credentials):</p>
-                                <code className="block bg-gray-100 px-2 py-1.5 rounded text-gray-600">await page.fill('#user_email', username);<br />await page.fill('#user_password', password);<br />await page.locator('[data-test="login-button"]').click();</code>
-                            </div>
-                        </div>
                     </div>
                 )}
             </div>

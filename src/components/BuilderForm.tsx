@@ -264,7 +264,7 @@ export default function BuilderForm({
                         <FileList
                             files={files}
                             testCaseId={testCaseId}
-                            onDelete={() => { onFilesChange && onFilesChange(); }}
+                            onDelete={() => onFilesChange?.()}
                             readOnly={readOnly}
                         />
                     )}
@@ -278,6 +278,26 @@ export default function BuilderForm({
                 <div className="flex justify-between items-center">
                     <label className="block text-sm font-medium text-foreground">Test Steps</label>
                 </div>
+
+                {!readOnly && (
+                    <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-600 space-y-3">
+                        <p className="text-[11px] text-gray-500 leading-snug">
+                            You can use the username and password as variables as below examples.
+                        </p>
+                        <div>
+                            <p className="font-medium text-gray-700">AI Step:</p>
+                            <code className="block bg-white border border-gray-200 px-2 py-1.5 rounded text-gray-600 whitespace-pre-wrap">{`Login with username ${config.test.security.credentialPlaceholders.username} and password ${config.test.security.credentialPlaceholders.password}.
+Verify products page is loaded.`}</code>
+                        </div>
+                        <div>
+                            <p className="font-medium text-gray-700">Code Step:</p>
+                            <code className="block bg-white border border-gray-200 px-2 py-1.5 rounded text-gray-600 whitespace-pre-wrap">{`await page.fill('#user-name', username);
+await page.fill('#password', password);
+await page.getByRole('button', { name: 'Login' }).click();
+await expect(page.getByText(username, {exact: true })).toBeVisible();`}</code>
+                        </div>
+                    </div>
+                )}
 
                 <DndContext
                     sensors={sensors}

@@ -1,46 +1,65 @@
 # Dependencies
-/node_modules
-/.pnp
+node_modules/
+.pnp
 .pnp.*
 .yarn/*
 !.yarn/patches
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
-/.npm-cache
+.npm-cache/
 
-# Testing
-/coverage
+# Next.js / build output
+.next/
+out/
+build/
+next-env.d.ts
+
+# Tests / coverage
+coverage/
 test-*.js
 verify-test.js
 
-# Next.js
-/.next/
-/out/
-next-env.d.ts
-
-# Production
-/build
-
-# Playwright / Midscene
-/midscene_run
+# Playwright / Midscene artifacts
+midscene_run/
+# Ignore generated screenshots, but keep app assets
 *.png
 !public/**/*.png
+
+# Uploaded test files
+uploads/
+
+# Local database
+dev.db
+
+# Generated code
+src/generated/prisma/
 
 # Environment variables
 .env*
 !.env.example
 
-# Misc
-.DS_Store
-*.pem
+# Logs
 *.log
-
-# Debug logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+
+# Secrets
+*.pem
+
+# IDE / editor
+.vscode/
+.idea/
+.claude/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
 
 # Vercel
 .vercel
@@ -48,33 +67,5 @@ yarn-error.log*
 # TypeScript
 *.tsbuildinfo
 
-# IDE
-.vscode
-.idea
-.claude
-*.swp
-*.swo
-*~
-
-# OS
-Thumbs.db
-
-# Midscene.js dump files
-midscene_run/dump
-midscene_run/report
-midscene_run/tmp
-midscene_run/log
-
-/src/generated/prisma
-
-# Local Database
-dev.db
-
-# AI Tools
-.claude
-
-# Uploaded test files
-/uploads/
-
-# Regression Test Cases
-/test-cases/
+# Regression test cases
+test-cases/
