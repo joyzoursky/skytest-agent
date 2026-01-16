@@ -1,9 +1,9 @@
-import { chromium, Page, BrowserContext, Browser, FilePayload } from 'playwright';
+import { chromium, Page, BrowserContext, Browser, ConsoleMessage } from 'playwright';
 import { expect as playwrightExpect } from '@playwright/test';
 import { PlaywrightAgent } from '@midscene/web/playwright';
 import { TestStep, BrowserConfig, TestEvent, TestResult, RunTestOptions, TestCaseFile } from '@/types';
 import { config } from '@/config/app';
-import { ConfigurationError, BrowserError, TestExecutionError, PlaywrightCodeError, getErrorMessage } from './errors';
+import { ConfigurationError, TestExecutionError, PlaywrightCodeError, getErrorMessage } from './errors';
 import { getFilePath } from './file-security';
 import { createLogger as createServerLogger } from '@/lib/logger';
 import { validateTargetUrl } from './url-security';
@@ -20,7 +20,7 @@ const credentialPlaceholders = config.test.security.credentialPlaceholders;
 
 type InputFilesParam = Parameters<Page['setInputFiles']>[1];
 
-type FilePayloadWithPath = FilePayload & { path: string };
+type FilePayloadWithPath = Record<string, unknown> & { path: string };
 
 type CredentialContext = Pick<BrowserConfig, 'username' | 'password'>;
 
@@ -114,11 +114,11 @@ function sanitizeInputFiles(files: InputFilesParam, stepIndex: number, code: str
                 return { ...file, path: normalizeUploadPath(file.path, stepIndex, code) };
             }
             return file;
-        }) as InputFilesParam;
+        }) as unknown as InputFilesParam;
     }
 
     if (hasFilePath(files)) {
-        return { ...files, path: normalizeUploadPath(files.path, stepIndex, code) } as InputFilesParam;
+        return { ...files, path: normalizeUploadPath(files.path, stepIndex, code) } as unknown as InputFilesParam;
     }
 
     return files;
@@ -259,7 +259,7 @@ async function setupBrowserInstances(
         });
 
         const page = await context.newPage();
-        page.on('console', async (msg: any) => {
+        page.on('console', (msg: ConsoleMessage) => {
             const type = msg.type();
             if (type === 'log' || type === 'info') {
                 if (!msg.text().includes('[midscene]')) {
