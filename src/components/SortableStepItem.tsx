@@ -1,7 +1,6 @@
 'use client';
 
 import { TestStep, StepType } from '@/types';
-import { config } from '@/config/app';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import dynamic from 'next/dynamic';
@@ -52,9 +51,6 @@ export default function SortableStepItem({ step, index, browsers, onRemove, onCh
 
     const [validationErrors, setValidationErrors] = useState<string[]>([]);
     const stepType = step.type || 'ai-action';
-
-    const usernamePlaceholder = config.test.security.credentialPlaceholders.username;
-    const passwordPlaceholder = config.test.security.credentialPlaceholders.password;
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -190,14 +186,6 @@ export default function SortableStepItem({ step, index, browsers, onRemove, onCh
                             rows={3}
                             disabled={readOnly}
                         />
-                        <div className="text-xs text-gray-400 mt-1 space-y-2">
-                            <div>
-                                <p className="font-medium">Example (uses Browser Config credentials):</p>
-                                <code className="block bg-gray-100 px-2 py-1.5 rounded text-gray-600">
-                                    Login with username {usernamePlaceholder} and password {passwordPlaceholder}.
-                                </code>
-                            </div>
-                        </div>
                         {/* File attachments UI removed. Use Playwright code with absolute file paths instead. */}
                     </div>
                 ) : hideMonacoEditor ? (
@@ -220,14 +208,6 @@ export default function SortableStepItem({ step, index, browsers, onRemove, onCh
                                 {validationErrors[0]}
                             </div>
                         )}
-                        <div className="text-xs text-gray-400 mt-1 space-y-2">
-                            <div>
-                                <p className="font-medium">Example (uses Browser Config credentials):</p>
-                                <code className="block bg-gray-100 px-2 py-1.5 rounded text-gray-600 whitespace-pre-wrap">{`await page.fill('#user_email', username);
-await page.fill('#user_password', password);
-await page.locator('[data-test="login-button"]').click();`}</code>
-                            </div>
-                        </div>
                     </div>
                 )}
             </div>
