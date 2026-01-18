@@ -69,3 +69,6 @@ Thumbs.db
 
 # Regression test cases
 test-cases/
+
+# Plans
+docs/plans/
