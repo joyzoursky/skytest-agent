@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use, useCallback } from "react";
+import { useState, useEffect, use, useCallback, useRef } from "react";
 import { useAuth } from "../../auth-provider";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -47,62 +47,117 @@ export default function ProjectPage({ params }: ProjectPageProps) {
     const [isLoading, setIsLoading] = useState(true);
     const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; testCaseId: string; testCaseName: string }>({ isOpen: false, testCaseId: "", testCaseName: "" });
 
+    const pollAbortRef = useRef<AbortController | null>(null);
+    const pollInFlightRef = useRef(false);
+
     useEffect(() => {
         if (!isAuthLoading && !isLoggedIn) {
             router.push("/");
         }
     }, [isAuthLoading, isLoggedIn, router]);
 
+    const getAuthHeaders = useCallback(async (): Promise<HeadersInit> => {
+        const token = await getAccessToken();
+        return token ? { 'Authorization': `Bearer ${token}` } : {};
+    }, [getAccessToken]);
+
+    const fetchProject = useCallback(async (signal?: AbortSignal) => {
+        if (!resolvedParams.id) return;
+
+        const headers = await getAuthHeaders();
+        const projectRes = await fetch(`/api/projects/${resolvedParams.id}`, { headers, signal });
+
+        if (!projectRes.ok) {
+            if (projectRes.status === 404) throw new Error("Project not found");
+            if (projectRes.status === 401) throw new Error("Unauthorized");
+            throw new Error("Failed to fetch project data");
+        }
+
+        const projectData = await projectRes.json();
+        setProject(projectData);
+    }, [resolvedParams.id, getAuthHeaders]);
+
+    const fetchTestCases = useCallback(async (signal?: AbortSignal) => {
+        if (!resolvedParams.id) return;
+
+        const headers = await getAuthHeaders();
+        const testCasesRes = await fetch(`/api/projects/${resolvedParams.id}/test-cases`, { headers, signal });
+
+        if (!testCasesRes.ok) {
+            if (testCasesRes.status === 401) throw new Error("Unauthorized");
+            throw new Error("Failed to fetch project data");
+        }
+
+        const testCasesData = await testCasesRes.json();
+        setTestCases(testCasesData);
+    }, [resolvedParams.id, getAuthHeaders]);
+
     const fetchData = useCallback(async (silent = false) => {
         if (!resolvedParams.id) return;
 
         try {
             if (!silent) setIsLoading(true);
-            const token = await getAccessToken();
-            const headers: HeadersInit = token ? { 'Authorization': `Bearer ${token}` } : {};
-
-            const [projectRes, testCasesRes] = await Promise.all([
-                fetch(`/api/projects/${resolvedParams.id}`, { headers }),
-                fetch(`/api/projects/${resolvedParams.id}/test-cases`, { headers })
-            ]);
-
-            if (!projectRes.ok || !testCasesRes.ok) {
-                if (projectRes.status === 404) throw new Error("Project not found");
-                if (projectRes.status === 401) throw new Error("Unauthorized");
-                throw new Error("Failed to fetch project data");
-            }
-
-            const projectData = await projectRes.json();
-            const testCasesData = await testCasesRes.json();
-
-            setProject(projectData);
-            setTestCases(testCasesData);
+            await Promise.all([fetchProject(), fetchTestCases()]);
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Failed to fetch project data";
             console.error("Error fetching project data:", message, err);
         } finally {
             if (!silent) setIsLoading(false);
         }
-    }, [resolvedParams.id, getAccessToken]);
+    }, [resolvedParams.id, fetchProject, fetchTestCases]);
 
     useEffect(() => {
-        if (isLoggedIn && !isAuthLoading) {
-            fetchData();
+        if (!isLoggedIn || isAuthLoading) return;
 
-            const onFocus = () => {
-                fetchData(true);
-            };
+        fetchData();
 
-            window.addEventListener('focus', onFocus);
+        const pollTestCases = async () => {
+            if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+            if (pollInFlightRef.current) return;
 
-            const intervalId = setInterval(() => fetchData(true), 2000);
+            pollInFlightRef.current = true;
+            pollAbortRef.current?.abort();
+            const controller = new AbortController();
+            pollAbortRef.current = controller;
 
-            return () => {
-                window.removeEventListener('focus', onFocus);
-                clearInterval(intervalId);
-            };
-        }
-    }, [fetchData, isLoggedIn, isAuthLoading]);
+            try {
+                await fetchTestCases(controller.signal);
+            } catch (err) {
+                if (err instanceof DOMException && err.name === 'AbortError') {
+                    return;
+                }
+                console.error("Error fetching test cases:", err);
+            } finally {
+                pollInFlightRef.current = false;
+            }
+        };
+
+        const onFocus = () => {
+            fetchData(true);
+        };
+
+        const onVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                pollTestCases();
+            } else {
+                pollAbortRef.current?.abort();
+            }
+        };
+
+        window.addEventListener('focus', onFocus);
+        document.addEventListener('visibilitychange', onVisibilityChange);
+
+        const intervalId = setInterval(pollTestCases, 2000);
+
+        return () => {
+            window.removeEventListener('focus', onFocus);
+            document.removeEventListener('visibilitychange', onVisibilityChange);
+            clearInterval(intervalId);
+            pollAbortRef.current?.abort();
+            pollAbortRef.current = null;
+            pollInFlightRef.current = false;
+        };
+    }, [fetchData, fetchTestCases, isLoggedIn, isAuthLoading]);
 
     const handleDeleteTestCase = async () => {
         try {
