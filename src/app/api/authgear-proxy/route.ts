@@ -30,11 +30,20 @@ function getTargetUrl(request: Request): { targetUrl: string | null; errorRespon
     };
   }
 
-  const allowedOrigin = new URL(endpoint).origin;
+  let allowedOrigin: string;
+  try {
+    allowedOrigin = new URL(endpoint).origin;
+  } catch {
+    return {
+      targetUrl: null,
+      errorResponse: NextResponse.json({ error: 'Auth endpoint misconfigured' }, { status: 500 })
+    };
+  }
+
   if (parsedTarget.origin !== allowedOrigin) {
     return {
       targetUrl: null,
-      errorResponse: NextResponse.json({ error: 'Blocked url' }, { status: 400 })
+      errorResponse: NextResponse.json({ error: 'Blocked url' }, { status: 403 })
     };
   }
 
@@ -55,16 +64,24 @@ async function proxy(request: Request): Promise<NextResponse> {
   const method = request.method.toUpperCase();
   const body = method === 'GET' || method === 'HEAD' ? undefined : await request.arrayBuffer();
 
-  const upstream = await fetch(targetUrl, {
-    method,
-    headers,
-    body,
-    redirect: 'manual'
-  });
+  let upstream: Response;
+  try {
+    upstream = await fetch(targetUrl, {
+      method,
+      headers,
+      body,
+      redirect: 'manual'
+    });
+  } catch {
+    return NextResponse.json({ error: 'Upstream request failed' }, { status: 502 });
+  }
 
   const responseHeaders = new Headers(upstream.headers);
   responseHeaders.delete('set-cookie');
   responseHeaders.delete('content-encoding');
+  responseHeaders.delete('content-length');
+  responseHeaders.delete('transfer-encoding');
+  responseHeaders.set('cache-control', 'no-store');
 
   return new NextResponse(upstream.body, {
     status: upstream.status,

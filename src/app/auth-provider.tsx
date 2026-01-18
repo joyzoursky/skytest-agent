@@ -9,6 +9,7 @@ import React, {
     useRef,
 } from "react";
 import type { UserInfo } from "@authgear/web";
+import { createAuthgearProxyFetch } from "./authgear-proxy-fetch";
 
 interface AuthContextType {
     isLoggedIn: boolean;
@@ -45,30 +46,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 const endpoint = process.env.NEXT_PUBLIC_AUTHGEAR_ENDPOINT || "";
                 const clientID = process.env.NEXT_PUBLIC_AUTHGEAR_CLIENT_ID || "";
 
-                const proxyFetch: typeof window.fetch = async (input, init) => {
-                    const req = new Request(input, init);
-
-                    if (endpoint && req.url.startsWith(endpoint)) {
-                        const proxyUrl = new URL('/api/authgear-proxy', window.location.origin);
-                        proxyUrl.searchParams.set('url', req.url);
-
-                        const proxiedHeaders = new Headers(req.headers);
-                        proxiedHeaders.delete('origin');
-                        proxiedHeaders.delete('referer');
-
-                        const method = req.method.toUpperCase();
-                        const body = method === 'GET' || method === 'HEAD' ? undefined : await req.arrayBuffer();
-
-                        return window.fetch(proxyUrl.toString(), {
-                            method,
-                            headers: proxiedHeaders,
-                            body,
-                            redirect: req.redirect,
-                        });
-                    }
-
-                    return window.fetch(req);
-                };
+                const proxyFetch = createAuthgearProxyFetch(endpoint);
 
                 await authgear.configure({
                     clientID,

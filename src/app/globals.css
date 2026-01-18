@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@source "../app/test-cases";
+
 @theme {
   --color-background: hsl(0 0% 98%);
   --color-foreground: hsl(222 47% 11%);

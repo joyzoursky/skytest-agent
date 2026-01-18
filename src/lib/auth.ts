@@ -4,9 +4,21 @@ import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('auth');
 
-const AUTHGEAR_ENDPOINT = process.env.NEXT_PUBLIC_AUTHGEAR_ENDPOINT || '';
-const JWKS_URL = `${AUTHGEAR_ENDPOINT}/oauth2/jwks`;
-const JKWS = createRemoteJWKSet(new URL(JWKS_URL));
+let jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
+
+function getJwks() {
+    if (jwks) return jwks;
+
+    const endpoint = process.env.NEXT_PUBLIC_AUTHGEAR_ENDPOINT;
+    if (!endpoint) return null;
+
+    try {
+        jwks = createRemoteJWKSet(new URL(`${endpoint}/oauth2/jwks`));
+        return jwks;
+    } catch {
+        return null;
+    }
+}
 
 export async function verifyAuth(request: Request, token?: string) {
     let finalToken = token;
@@ -24,7 +36,13 @@ export async function verifyAuth(request: Request, token?: string) {
     }
 
     try {
-        const { payload } = await jwtVerify(finalToken, JKWS);
+        const jwks = getJwks();
+        if (!jwks) {
+            logger.error('verifyAuth: Authgear endpoint not configured');
+            return null;
+        }
+
+        const { payload } = await jwtVerify(finalToken, jwks);
         try {
             const authId = (payload.sub as string | undefined) || undefined;
             if (authId) {
