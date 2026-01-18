@@ -137,34 +137,29 @@ export default function TestForm({ onSubmit, isLoading, initialData, showNameInp
     }, [mode, steps.length, browsers]);
 
     const handleLoadSampleData = () => {
+        const usernamePlaceholder = config.test.security.credentialPlaceholders.username;
+        const passwordPlaceholder = config.test.security.credentialPlaceholders.password;
+        const placeholderVars = { username: usernamePlaceholder, password: passwordPlaceholder };
+
         if (mode === 'simple') {
-            setName('Simple Login Test');
+            setName(t('sample.simple.name'));
             setSimpleUrl('https://www.saucedemo.com');
             setSimpleUsername('standard_user');
             setSimplePassword('secret_sauce');
-            const usernamePlaceholder = config.test.security.credentialPlaceholders.username;
-            const passwordPlaceholder = config.test.security.credentialPlaceholders.password;
-
-            setPrompt(`Login with username ${usernamePlaceholder} and password ${passwordPlaceholder}.
-Add the "Sauce Labs Backpack" to the cart.
-Click on the cart icon.
-Verify that "Sauce Labs Backpack" is in the cart.`);
+            setPrompt(t('sample.simple.instructions', placeholderVars));
         } else {
-            const usernamePlaceholder = config.test.security.credentialPlaceholders.username;
-            const passwordPlaceholder = config.test.security.credentialPlaceholders.password;
-
-            setName('Cross-Browser Session Isolation');
+            setName(t('sample.multi.name'));
             setBrowsers([
                 { id: 'browser_a', config: { url: 'https://www.saucedemo.com', username: 'standard_user', password: 'secret_sauce' } },
                 { id: 'browser_b', config: { url: 'https://www.saucedemo.com', username: 'visual_user', password: 'secret_sauce' } }
             ]);
             setSteps([
-                { id: "1", target: "browser_a", action: `Login with username ${usernamePlaceholder} and password ${passwordPlaceholder}.` },
-                { id: "2", target: "browser_b", action: `Login with username ${usernamePlaceholder} and password ${passwordPlaceholder}.` },
-                { id: "3", target: "browser_a", action: "Add 'Sauce Labs Backpack' to cart" },
-                { id: "4", target: "browser_b", action: "Add 'Sauce Labs Bike Light' to cart" },
-                { id: "5", target: "browser_a", action: "Click on the cart icon.\nVerify ONLY 'Sauce Labs Backpack' is in the cart." },
-                { id: "6", target: "browser_b", action: "Click on the cart icon.\nVerify ONLY 'Sauce Labs Bike Light' is in the cart." }
+                { id: "1", target: "browser_a", action: t('sample.multi.step1', placeholderVars) },
+                { id: "2", target: "browser_b", action: t('sample.multi.step2', placeholderVars) },
+                { id: "3", target: "browser_a", action: t('sample.multi.step3') },
+                { id: "4", target: "browser_b", action: t('sample.multi.step4') },
+                { id: "5", target: "browser_a", action: t('sample.multi.step5') },
+                { id: "6", target: "browser_b", action: t('sample.multi.step6') }
             ]);
         }
     };
