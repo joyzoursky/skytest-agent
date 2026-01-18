@@ -9,7 +9,7 @@ const logger = createLogger('api:projects:test-cases');
 export const dynamic = 'force-dynamic';
 
 function cleanStepsForStorage(steps: TestStep[]): TestStep[] {
-    return steps.map(({ aiAction, codeAction, ...step }) => step);
+    return steps.map(({ aiAction: _aiAction, codeAction: _codeAction, ...step }) => step);
 }
 
 export async function GET(
@@ -27,9 +27,15 @@ export async function GET(
         if (!project) {
             return NextResponse.json({ error: 'Project not found' }, { status: 404 });
         }
-        if (project.userId !== (authPayload as any).userId) {
+
+        const userId = 'userId' in authPayload && typeof authPayload.userId === 'string' ? authPayload.userId : null;
+        if (!userId) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+        if (project.userId !== userId) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
+
         const testCases = await prisma.testCase.findMany({
             where: { projectId: id },
             orderBy: { updatedAt: 'desc' },
@@ -63,15 +69,29 @@ export async function POST(
         if (!project) {
             return NextResponse.json({ error: 'Project not found' }, { status: 404 });
         }
-        if (project.userId !== (authPayload as any).userId) {
+
+        const userId = 'userId' in authPayload && typeof authPayload.userId === 'string' ? authPayload.userId : null;
+        if (!userId) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+        if (project.userId !== userId) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
-        const body = await request.json();
-        const { name, url, prompt, steps, browserConfig, username, password } = body;
 
-        const hasSteps = steps && Array.isArray(steps) && steps.length > 0;
-        const hasBrowserConfig = browserConfig && Object.keys(browserConfig).length > 0;
-        const cleanedSteps = hasSteps ? cleanStepsForStorage(steps) : undefined;
+        const body: unknown = await request.json();
+        const { name, url, prompt, steps, browserConfig, username, password } = (body ?? {}) as {
+            name?: string;
+            url?: string;
+            prompt?: string;
+            steps?: unknown;
+            browserConfig?: unknown;
+            username?: string;
+            password?: string;
+        };
+
+        const hasSteps = Array.isArray(steps) && steps.length > 0;
+        const hasBrowserConfig = !!browserConfig && typeof browserConfig === 'object' && !Array.isArray(browserConfig) && Object.keys(browserConfig as Record<string, unknown>).length > 0;
+        const cleanedSteps = hasSteps ? cleanStepsForStorage(steps as TestStep[]) : undefined;
 
         if (!name || !url || (!prompt && !hasSteps)) {
             return NextResponse.json({ error: 'Name, URL, and either Prompt or Steps are required' }, { status: 400 });

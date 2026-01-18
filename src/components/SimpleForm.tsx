@@ -1,6 +1,6 @@
 'use client';
 
-import { config } from '@/config/app';
+import { useI18n } from '@/i18n';
 
 interface SimpleFormProps {
     url: string;
@@ -29,18 +29,20 @@ export default function SimpleForm({
     setPrompt,
     readOnly
 }: SimpleFormProps) {
+    const { t } = useI18n();
+
     return (
         <div className="space-y-6 animate-fade-in">
             {/* Target URL */}
             <div className="space-y-2">
                 <label className="block text-sm font-medium text-foreground">
-                    Target URL
+                    {t('simpleForm.targetUrl')}
                 </label>
                 <input
                     type="url"
                     required
                     className="input-field"
-                    placeholder="https://app.example.com"
+                    placeholder={t('simpleForm.urlPlaceholder')}
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                     disabled={readOnly}
@@ -51,7 +53,7 @@ export default function SimpleForm({
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <label className="block text-sm font-medium text-foreground">
-                        Username <span className="text-gray-400 font-normal">(Optional)</span>
+                        {t('simpleForm.username')} <span className="text-gray-400 font-normal">{t('simpleForm.optional')}</span>
                     </label>
                     <input
                         type="text"
@@ -63,7 +65,7 @@ export default function SimpleForm({
                 </div>
                 <div className="space-y-2">
                     <label className="block text-sm font-medium text-foreground">
-                        Password <span className="text-gray-400 font-normal">(Optional)</span>
+                        {t('simpleForm.password')} <span className="text-gray-400 font-normal">{t('simpleForm.optional')}</span>
                     </label>
                     <div className="relative">
                         <input
@@ -81,7 +83,7 @@ export default function SimpleForm({
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                             disabled={readOnly}
                         >
-                            {showPassword ? 'Hide' : 'Show'}
+                            {showPassword ? t('common.hide') : t('common.show')}
                         </button>
                     </div>
                 </div>
@@ -90,12 +92,12 @@ export default function SimpleForm({
             {/* Instructions */}
             <div className="space-y-2">
                 <label className="block text-sm font-medium text-foreground">
-                    Test Instructions
+                    {t('simpleForm.instructions')}
                 </label>
                 <textarea
                     required
                     className="input-field min-h-[200px] resize-y"
-                    placeholder="Enter step-by-step test instructions..."
+                    placeholder={t('simpleForm.instructionsPlaceholder')}
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     disabled={readOnly}

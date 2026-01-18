@@ -6,6 +6,7 @@ import { TestRun, TestEvent, TestCaseFile, TestData, isLogData, isScreenshotData
 import { formatTime } from '@/utils/dateFormatter';
 import TimelineEvent from './result-viewer/TimelineEvent';
 import ResultStatus from './result-viewer/ResultStatus';
+import { useI18n } from '@/i18n';
 
 interface ResultViewerMeta {
     runId?: string | null;
@@ -74,6 +75,8 @@ function maskEvent(event: TestEvent, secrets: string[]): TestEvent {
 }
 
 export default function ResultViewer({ result, meta }: ResultViewerProps) {
+    const { t } = useI18n();
+
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const [autoScroll, setAutoScroll] = useState(true);
@@ -188,7 +191,7 @@ export default function ResultViewer({ result, meta }: ResultViewerProps) {
                     <button
                         onClick={() => setLightboxImage(null)}
                         className="absolute top-4 right-4 p-2 text-white hover:text-gray-300 transition-colors"
-                        aria-label="Close lightbox"
+                        aria-label={t('results.closeLightbox')}
                     >
                         <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -217,13 +220,13 @@ export default function ResultViewer({ result, meta }: ResultViewerProps) {
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                         </svg>
-                        <span>New Activity</span>
+                        <span>{t('results.newActivity')}</span>
                     </button>
                 )}
 
                 <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-white/50 backdrop-blur-sm z-10">
                     <div className="flex items-center gap-3">
-                        <h2 className="text-lg font-semibold text-foreground">Test Results</h2>
+                        <h2 className="text-lg font-semibold text-foreground">{t('results.title')}</h2>
                         {result.status !== 'IDLE' && (
                             <div className={`status-badge ${result.status === 'PASS' ? 'status-badge-pass' :
                                 result.status === 'FAIL' ? 'status-badge-fail' :
@@ -243,16 +246,16 @@ export default function ResultViewer({ result, meta }: ResultViewerProps) {
                             onClick={handleCopyLogs}
                             type="button"
                             className="h-8 px-2.5 py-0 bg-gray-100 border border-gray-200 rounded-md text-xs font-medium text-muted-foreground relative inline-flex items-center justify-center"
-                            title="Copy logs"
+                            title={t('results.copyLogs')}
                         >
-                            <span className="invisible inline-block leading-none">Copy Logs</span>
+                            <span className="invisible inline-block leading-none">{t('results.copyLogs')}</span>
                             <span className="absolute inset-0 flex items-center justify-center leading-none">
-                                {copied ? 'Copied!' : 'Copy Logs'}
+                                {copied ? t('results.copied') : t('results.copyLogs')}
                             </span>
                         </button>
                         <div className="h-8 px-2.5 py-0 bg-gray-100 border border-gray-200 rounded-md inline-flex items-center">
                             <span className="text-xs text-muted-foreground font-medium">
-                                {events.length} events
+                                {t('results.eventsCount', { count: events.length })}
                             </span>
                         </div>
                     </div>
@@ -271,9 +274,9 @@ export default function ResultViewer({ result, meta }: ResultViewerProps) {
                                 </svg>
                             </div>
                             <div className="space-y-2">
-                                <p className="text-base font-medium text-foreground">Ready to Run</p>
+                                <p className="text-base font-medium text-foreground">{t('results.readyTitle')}</p>
                                 <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
-                                    Configure your test parameters and click Run Test to begin
+                                    {t('results.readySubtitle')}
                                 </p>
                             </div>
                         </div>
@@ -295,7 +298,7 @@ export default function ResultViewer({ result, meta }: ResultViewerProps) {
                                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                         </svg>
-                                        <span>Waiting for events...</span>
+                                        <span>{t('results.waiting')}</span>
                                     </div>
                                 </div>
                             )}

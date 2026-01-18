@@ -9,6 +9,7 @@ import ResultViewer from "@/components/ResultViewer";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { TestStep, BrowserConfig, TestEvent, TestCaseFile } from "@/types";
 import { exportToMarkdown, parseMarkdown } from "@/utils/testCaseMarkdown";
+import { useI18n } from "@/i18n";
 
 interface TestData {
     url: string;
@@ -30,7 +31,8 @@ interface TestResult {
 function RunPageContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
-    const { user, isLoggedIn, isLoading: isAuthLoading, getAccessToken } = useAuth();
+    const { isLoggedIn, isLoading: isAuthLoading, getAccessToken } = useAuth();
+    const { t } = useI18n();
     const [isLoading, setIsLoading] = useState(false);
     const [result, setResult] = useState<TestResult>({
         status: 'IDLE',
@@ -77,7 +79,7 @@ function RunPageContent() {
             const content = e.target?.result as string;
             const { data, errors } = parseMarkdown(content);
             if (errors.length > 0) {
-                alert(`Import warnings: ${errors.join(', ')}`);
+                alert(t('testForm.importWarnings', { warnings: errors.join(', ') }));
             }
             setInitialData(data);
             if (data.name) {
@@ -274,7 +276,7 @@ function RunPageContent() {
                 if (['PASS', 'FAIL', 'CANCELLED'].includes(prev.status)) {
                     return prev;
                 }
-                return { ...prev, error: 'Connection lost. Please refresh to check status.' };
+                return { ...prev, error: t('run.error.connectionLost') };
             });
         };
 
@@ -292,13 +294,13 @@ function RunPageContent() {
             const token = await getAccessToken();
             const headers: HeadersInit = token ? { 'Authorization': `Bearer ${token}` } : {};
             const resp = await fetch(`/api/test-runs/${currentRunId}/cancel`, { method: 'POST', headers });
-            if (!resp.ok) throw new Error('Failed to stop test');
-            setResult(prev => ({ ...prev, status: 'CANCELLED', error: 'Test stopped by user' }));
+            if (!resp.ok) throw new Error(t('run.error.failedToStop'));
+            setResult(prev => ({ ...prev, status: 'CANCELLED', error: t('run.error.testStopped') }));
             setActiveRunId(null);
             setCurrentRunId(null);
         } catch (error) {
             console.error('Failed to stop test', error);
-            alert('Failed to stop test');
+            alert(t('run.error.failedToStop'));
         } finally {
             setIsLoading(false);
         }
@@ -356,13 +358,13 @@ function RunPageContent() {
             }
         } catch (error) {
             console.error("Failed to save test case", error);
-            setResult({ status: 'FAIL', events: [], error: 'Failed to save test case' });
+            setResult({ status: 'FAIL', events: [], error: t('run.error.failedToSave') });
             setIsLoading(false);
             return;
         }
 
         if (!activeTestCaseId) {
-            setResult({ status: 'FAIL', events: [], error: 'Please select or create a test case first.' });
+            setResult({ status: 'FAIL', events: [], error: t('run.error.selectOrCreate') });
             setIsLoading(false);
             return;
         }
@@ -401,8 +403,8 @@ function RunPageContent() {
 
         const effectiveProjectId = projectId || projectIdFromTestCase;
         if (!effectiveProjectId) {
-            alert('Please select a project before uploading files.');
-            throw new Error('No project selected');
+            alert(t('run.error.selectProjectUpload'));
+            throw new Error(t('run.error.noProjectSelected'));
         }
 
         try {
@@ -446,7 +448,7 @@ function RunPageContent() {
             return newTestCase.id as string;
         } catch (error) {
             console.error('Failed to create test case for upload', error);
-            alert('Failed to create test case for file uploads. Please ensure required fields are filled (URL and a prompt or steps).');
+            alert(t('run.error.failedCreateTestCaseUpload'));
             throw error;
         }
     };
@@ -458,7 +460,7 @@ function RunPageContent() {
             {(projectId || projectIdFromTestCase) && projectName && (
                 <Breadcrumbs items={[
                     { label: projectName, href: `/projects/${projectId || projectIdFromTestCase}` },
-                    { label: testCaseId ? 'Run Test' : 'New Run' }
+                    { label: testCaseId ? t('run.breadcrumb.runTest') : t('run.breadcrumb.newRun') }
                 ]} />
             )}
 
@@ -472,7 +474,7 @@ function RunPageContent() {
 
             <div className="flex items-center justify-between mb-8">
                 <h1 className="text-3xl font-bold text-gray-900">
-                    {testCaseId ? 'Run Test' : 'Start New Run'}
+                    {testCaseId ? t('run.title.runTest') : t('run.title.startNewRun')}
                 </h1>
                 <div className="flex items-center gap-2">
                     {['RUNNING', 'QUEUED'].includes(result.status) && (
@@ -484,7 +486,7 @@ function RunPageContent() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
                             </svg>
-                            {result.status === 'QUEUED' ? 'Quit Queue' : 'Stop Test'}
+                            {result.status === 'QUEUED' ? t('run.button.quitQueue') : t('run.button.stopTest')}
                         </button>
                     )}
                 </div>
@@ -493,8 +495,8 @@ function RunPageContent() {
                 <div className="space-y-6">
                     {activeRunId && activeRunId !== currentRunId ? (
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
-                            <h3 className="text-lg font-semibold text-blue-900 mb-2">Test in Progress</h3>
-                            <p className="text-blue-700 mb-4">A test is currently running for this test case.</p>
+                            <h3 className="text-lg font-semibold text-blue-900 mb-2">{t('run.testInProgress.title')}</h3>
+                            <p className="text-blue-700 mb-4">{t('run.testInProgress.subtitle')}</p>
                             <button
                                 onClick={() => {
                                     window.history.pushState(null, "", `?runId=${activeRunId}&testCaseId=${testCaseId}&projectId=${projectId || projectIdFromTestCase}`);
@@ -503,7 +505,7 @@ function RunPageContent() {
                                 }}
                                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
                             >
-                                View Running Test
+                                {t('run.testInProgress.view')}
                             </button>
                         </div>
                     ) : (
@@ -542,10 +544,12 @@ function RunPageContent() {
 }
 
 export default function RunPage() {
+    const { t } = useI18n();
+
     return (
         <main className="min-h-screen bg-gray-50 p-8">
             <div className="max-w-7xl mx-auto">
-                <Suspense fallback={<div>Loading...</div>}>
+                <Suspense fallback={<div>{t('common.loading')}</div>}>
                     <RunPageContent />
                 </Suspense>
             </div>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { TestStatus } from '@/types';
+import { useI18n } from '@/i18n';
 
 interface ResultStatusProps {
     status: TestStatus;
@@ -8,6 +9,7 @@ interface ResultStatusProps {
 }
 
 export default function ResultStatus({ status, error, eventCount }: ResultStatusProps) {
+    const { t } = useI18n();
     const [copied, setCopied] = useState(false);
 
     const copyErrorToClipboard = async (errorText: string) => {
@@ -30,9 +32,9 @@ export default function ResultStatus({ status, error, eventCount }: ResultStatus
                         </svg>
                     </div>
                     <div className="flex-1 space-y-2">
-                        <h3 className="text-lg font-semibold text-green-900">Test Passed</h3>
+                        <h3 className="text-lg font-semibold text-green-900">{t('results.pass.title')}</h3>
                         <p className="text-sm text-green-700 leading-relaxed">
-                            All test steps completed successfully without errors.
+                            {t('results.pass.body')}
                         </p>
                     </div>
                 </div>
@@ -51,11 +53,11 @@ export default function ResultStatus({ status, error, eventCount }: ResultStatus
                         </svg>
                     </div>
                     <div className="flex-1 space-y-2">
-                        <h3 className="text-lg font-semibold text-gray-900">Test Cancelled</h3>
+                        <h3 className="text-lg font-semibold text-gray-900">{t('results.cancelled.title')}</h3>
                         <p className="text-sm text-gray-700 leading-relaxed">
                             {eventCount > 0
-                                ? "The test was stopped before completion. Partial results have been saved to history."
-                                : "The test was stopped before any results were captured."}
+                                ? t('results.cancelled.bodyWithEvents')
+                                : t('results.cancelled.bodyNoEvents')}
                         </p>
                     </div>
                 </div>
@@ -74,26 +76,26 @@ export default function ResultStatus({ status, error, eventCount }: ResultStatus
                     </div>
                     <div className="flex-1 space-y-2 overflow-hidden">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold text-red-900">Test Failed</h3>
+                            <h3 className="text-lg font-semibold text-red-900">{t('results.fail.title')}</h3>
                             {error && (
                                 <button
                                     onClick={() => copyErrorToClipboard(error)}
                                     className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-100 hover:bg-red-200 border border-red-300 rounded-md transition-colors"
-                                    title="Copy error to clipboard"
+                                    title={t('results.fail.copyError')}
                                 >
                                     {copied ? (
                                         <>
                                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                             </svg>
-                                            <span>Copied!</span>
+                                            <span>{t('common.copied')}</span>
                                         </>
                                     ) : (
                                         <>
                                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                                             </svg>
-                                            <span>Copy Error</span>
+                                            <span>{t('results.fail.copyError')}</span>
                                         </>
                                     )}
                                 </button>
@@ -101,14 +103,14 @@ export default function ResultStatus({ status, error, eventCount }: ResultStatus
                         </div>
                         {error ? (
                             <div className="space-y-1">
-                                <p className="text-xs text-red-700 font-medium">Error Details:</p>
+                                <p className="text-xs text-red-700 font-medium">{t('results.fail.errorDetails')}</p>
                                 <p className="text-sm text-red-800 leading-relaxed bg-red-100 p-3 rounded-md border border-red-200 break-words whitespace-pre-wrap max-h-[300px] overflow-y-auto">
                                     {error}
                                 </p>
                             </div>
                         ) : (
                             <p className="text-sm text-red-700 leading-relaxed">
-                                The test encountered an error during execution. Check the logs above for details.
+                                {t('results.fail.bodyNoError')}
                             </p>
                         )}
                     </div>

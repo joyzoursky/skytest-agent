@@ -5,16 +5,23 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import dynamic from 'next/dynamic';
 import { useState } from 'react';
+import { useI18n } from '@/i18n';
+
+function EditorLoading() {
+    const { t } = useI18n();
+
+    return (
+        <div className="h-[180px] bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-center text-gray-400 text-sm">
+            {t('step.editor.loading')}
+        </div>
+    );
+}
 
 const PlaywrightCodeEditor = dynamic(
     () => import('./PlaywrightCodeEditor'),
     {
         ssr: false,
-        loading: () => (
-            <div className="h-[180px] bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-center text-gray-400 text-sm">
-                Loading editor...
-            </div>
-        )
+        loading: () => <EditorLoading />
     }
 );
 
@@ -40,6 +47,8 @@ interface SortableStepItemProps {
 }
 
 export default function SortableStepItem({ step, index, browsers, onRemove, onChange, onTypeChange, mode, readOnly, isAnyDragging }: SortableStepItemProps) {
+    const { t } = useI18n();
+
     const {
         attributes,
         listeners,
@@ -84,7 +93,7 @@ export default function SortableStepItem({ step, index, browsers, onRemove, onCh
                         {...attributes}
                         {...listeners}
                         className="cursor-move p-1 text-gray-300 hover:text-gray-500 hover:bg-gray-100 rounded"
-                        aria-label="Drag step"
+                        aria-label={t('step.drag')}
                     >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -131,7 +140,7 @@ export default function SortableStepItem({ step, index, browsers, onRemove, onCh
                                 ? 'bg-white text-indigo-600 shadow-sm'
                                 : 'text-gray-500 hover:text-gray-700'
                                 }`}
-                            title="AI Action - Natural language instruction"
+                            title={t('step.type.aiTitle')}
                         >
                             AI
                         </button>
@@ -143,7 +152,7 @@ export default function SortableStepItem({ step, index, browsers, onRemove, onCh
                                 ? 'bg-white text-orange-600 shadow-sm'
                                 : 'text-gray-500 hover:text-gray-700'
                                 }`}
-                            title="Playwright Code - Custom JavaScript"
+                            title={t('step.type.codeTitle')}
                         >
                             Code
                         </button>
@@ -155,7 +164,7 @@ export default function SortableStepItem({ step, index, browsers, onRemove, onCh
                         type="button"
                         onClick={onRemove}
                         className={`${onTypeChange ? '' : 'ml-auto'} text-gray-300 hover:text-red-500 p-1 rounded-full hover:bg-red-50 transition-colors`}
-                        aria-label="Remove step"
+                        aria-label={t('step.remove')}
                     >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -166,7 +175,7 @@ export default function SortableStepItem({ step, index, browsers, onRemove, onCh
 
             <div className="space-y-1">
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                    {stepType === 'ai-action' ? 'Action Instructions' : 'Playwright Code'}
+                    {stepType === 'ai-action' ? t('step.label.ai') : t('step.label.code')}
                 </label>
 
                 {stepType === 'ai-action' ? (
@@ -180,7 +189,7 @@ export default function SortableStepItem({ step, index, browsers, onRemove, onCh
                             }}
                             onPointerDown={(e) => e.stopPropagation()}
                             onKeyDown={(e) => e.stopPropagation()}
-                            placeholder="Describe the action to perform..."
+                            placeholder={t('step.ai.placeholder')}
                             className="w-full text-sm border-gray-200 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 min-h-[80px] py-3 px-3 resize-none bg-gray-50 focus:bg-white transition-colors disabled:bg-gray-100 disabled:text-gray-600"
                             required={mode === 'builder'}
                             rows={3}
@@ -190,7 +199,7 @@ export default function SortableStepItem({ step, index, browsers, onRemove, onCh
                     </div>
                 ) : hideMonacoEditor ? (
                     <div className="h-[180px] bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-center text-gray-400 text-sm">
-                        <code className="text-xs text-gray-500 truncate max-w-full px-4">{step.action || 'Code editor'}</code>
+                        <code className="text-xs text-gray-500 truncate max-w-full px-4">{step.action || t('step.label.code')}</code>
                     </div>
                 ) : (
                     <div onPointerDown={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>

@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import { formatTime } from '@/utils/dateFormatter';
 import { TestEvent } from '@/types';
+import { useI18n } from '@/i18n';
 
 interface TimelineEventProps {
     event: TestEvent;
@@ -9,6 +10,8 @@ interface TimelineEventProps {
 }
 
 export default function TimelineEvent({ event, isLast, onImageClick }: TimelineEventProps) {
+    const { t } = useI18n();
+
     return (
         <div className="relative pl-6 group">
             {/* Timeline */}
@@ -73,15 +76,15 @@ export default function TimelineEvent({ event, isLast, onImageClick }: TimelineE
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
-                        <span className="font-medium">{event.data.label || 'Screenshot'}</span>
+                        <span className="font-medium">{event.data.label || t('timeline.screenshot')}</span>
                     </div>
                     <div
                         className="relative rounded-md overflow-hidden border border-gray-200 shadow-sm bg-white cursor-pointer group"
-                        onClick={() => 'src' in event.data && onImageClick(event.data.src, event.data.label || 'Screenshot')}
+                        onClick={() => 'src' in event.data && onImageClick(event.data.src, event.data.label || t('timeline.screenshot'))}
                     >
                         <Image
                             src={event.data.src}
-                            alt={event.data.label || 'Screenshot'}
+                            alt={event.data.label || t('timeline.screenshot')}
                             width={1280}
                             height={800}
                             style={{ width: '100%', height: 'auto' }}
@@ -92,7 +95,7 @@ export default function TimelineEvent({ event, isLast, onImageClick }: TimelineE
                                 <svg className="w-5 h-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
                                 </svg>
-                                <span className="text-sm font-medium text-gray-700">Click to enlarge</span>
+                                <span className="text-sm font-medium text-gray-700">{t('timeline.clickToEnlarge')}</span>
                             </div>
                         </div>
                     </div>

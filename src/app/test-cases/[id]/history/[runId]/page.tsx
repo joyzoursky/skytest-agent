@@ -8,6 +8,7 @@ import TestForm from "@/components/TestForm";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { formatDateTime } from "@/utils/dateFormatter";
 import { exportToMarkdown } from "@/utils/testCaseMarkdown";
+import { useI18n } from "@/i18n";
 
 import { TestStep, BrowserConfig } from "@/types";
 
@@ -36,6 +37,8 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
     const { id, runId } = use(params);
     const { isLoggedIn, isLoading: isAuthLoading, getAccessToken } = useAuth();
     const router = useRouter();
+    const { t } = useI18n();
+
     const [testRun, setTestRun] = useState<TestRun | null>(null);
     const [testCase, setTestCase] = useState<TestCase | null>(null);
     const [projectId, setProjectId] = useState<string>("");
@@ -122,7 +125,7 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
     if (!testRun) {
         return (
             <div className="min-h-screen flex items-center justify-center">
-                <p className="text-gray-500">Test run not found.</p>
+                <p className="text-gray-500">{t('runDetail.notFound')}</p>
             </div>
         );
     }
@@ -165,12 +168,12 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
             <div className="max-w-7xl mx-auto">
                 <Breadcrumbs items={[
                     { label: projectName, href: projectId ? `/projects/${projectId}` : undefined },
-                    { label: testCase?.name || "Test Case", href: `/test-cases/${id}/history` },
-                    { label: `Run - ${formatDateTime(testRun.createdAt)}` }
+                    { label: testCase?.name || t('runDetail.breadcrumb.testCaseFallback'), href: `/test-cases/${id}/history` },
+                    { label: t('runDetail.breadcrumb.runPrefix', { time: formatDateTime(testRun.createdAt) }) }
                 ]} />
 
                 <div className="flex items-center justify-between mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900">Test Run Details</h1>
+                    <h1 className="text-3xl font-bold text-gray-900">{t('runDetail.title')}</h1>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">

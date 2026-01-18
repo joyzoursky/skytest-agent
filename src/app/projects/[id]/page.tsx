@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import Modal from "@/components/Modal";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { formatDateTimeCompact } from "@/utils/dateFormatter";
+import { useI18n } from "@/i18n";
 
 interface TestRun {
     id: string;
@@ -35,14 +36,15 @@ interface Project {
 }
 
 export default function ProjectPage({ params }: ProjectPageProps) {
-    const { user, isLoggedIn, isLoading: isAuthLoading, getAccessToken } = useAuth();
+    const { isLoggedIn, isLoading: isAuthLoading, getAccessToken } = useAuth();
     const resolvedParams = use(params);
     const { id } = resolvedParams;
     const router = useRouter();
+    const { t } = useI18n();
+
     const [project, setProject] = useState<Project | null>(null);
     const [testCases, setTestCases] = useState<TestCase[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; testCaseId: string; testCaseName: string }>({ isOpen: false, testCaseId: "", testCaseName: "" });
 
     useEffect(() => {
@@ -75,11 +77,9 @@ export default function ProjectPage({ params }: ProjectPageProps) {
 
             setProject(projectData);
             setTestCases(testCasesData);
-            setError(null);
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Failed to fetch project data";
-            console.error("Error fetching project data:", err);
-            setError(message);
+            console.error("Error fetching project data:", message, err);
         } finally {
             if (!silent) setIsLoading(false);
         }
@@ -134,21 +134,21 @@ export default function ProjectPage({ params }: ProjectPageProps) {
             <Modal
                 isOpen={deleteModal.isOpen}
                 onClose={() => setDeleteModal({ isOpen: false, testCaseId: "", testCaseName: "" })}
-                title="Delete Test Case"
+                title={t('project.deleteTestCase.title')}
                 onConfirm={handleDeleteTestCase}
-                confirmText="Delete"
+                confirmText={t('project.deleteTestCase.confirm')}
                 confirmVariant="danger"
             >
                 <p className="text-gray-700">
-                    Are you sure you want to delete <span className="font-semibold">{deleteModal.testCaseName}</span>? This will permanently delete all test history for this test case.
+                    {t('project.deleteTestCase.body', { name: deleteModal.testCaseName })}
                 </p>
             </Modal>
 
             <div className="max-w-5xl mx-auto">
-                <Breadcrumbs items={[{ label: project?.name || 'Project' }]} />
+                <Breadcrumbs items={[{ label: project?.name || t('common.project') }]} />
 
                 <div className="flex items-center justify-between mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900">Test Cases</h1>
+                    <h1 className="text-3xl font-bold text-gray-900">{t('project.testCases.title')}</h1>
                     <div className="flex items-center gap-2">
                         <Link
                             href={`/run?projectId=${id}`}
@@ -157,17 +157,17 @@ export default function ProjectPage({ params }: ProjectPageProps) {
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                             </svg>
-                            Start New Run
+                            {t('project.startNewRun')}
                         </Link>
                     </div>
                 </div>
 
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                     <div className="hidden md:grid grid-cols-12 gap-4 p-4 border-b border-gray-200 bg-gray-50 text-sm font-medium text-gray-500">
-                        <div className="col-span-5">Name</div>
-                        <div className="col-span-3">Last Run</div>
-                        <div className="col-span-2">Updated</div>
-                        <div className="col-span-2 text-right">Actions</div>
+                        <div className="col-span-5">{t('project.table.name')}</div>
+                        <div className="col-span-3">{t('project.table.lastRun')}</div>
+                        <div className="col-span-2">{t('project.table.updated')}</div>
+                        <div className="col-span-2 text-right">{t('project.table.actions')}</div>
                     </div>
 
                     {testCases.length === 0 ? (
@@ -177,8 +177,8 @@ export default function ProjectPage({ params }: ProjectPageProps) {
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                 </svg>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">No test cases yet</h3>
-                            <p className="text-gray-500 mb-6">Create your first test case by starting a new test run.</p>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('project.noTestCases.title')}</h3>
+                            <p className="text-gray-500 mb-6">{t('project.noTestCases.subtitle')}</p>
                             <Link
                                 href={`/run?projectId=${id}`}
                                 className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors inline-flex items-center gap-2"
@@ -186,7 +186,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
                                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                                 </svg>
-                                Start New Run
+                                {t('project.startNewRun')}
                             </Link>
                         </div>
                     ) : (
@@ -197,8 +197,8 @@ export default function ProjectPage({ params }: ProjectPageProps) {
                                         <div className="font-medium text-gray-900">{testCase.name}</div>
                                         <div className="text-xs text-gray-500 mt-1">
                                             {(testCase.steps && testCase.steps.length > 0) || (testCase.browserConfig && testCase.browserConfig.length > 0)
-                                                ? 'multi-browser'
-                                                : 'single-browser'}
+                                                ? t('project.testCase.type.multi')
+                                                : t('project.testCase.type.single')}
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-4 md:contents">
@@ -208,7 +208,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
                                                     testCase.testRuns[0].status === 'FAIL' ? 'bg-red-100 text-red-800' :
                                                         testCase.testRuns[0].status === 'CANCELLED' ? 'bg-gray-100 text-gray-800' :
                                                             testCase.testRuns[0].status === 'RUNNING' ? 'bg-blue-100 text-blue-800' :
-                                                                'bg-yellow-100 text-yellow-800' // Queued
+                                                                'bg-yellow-100 text-yellow-800'
                                                     }`}>
                                                     {testCase.testRuns[0].status}
                                                 </span>
@@ -224,8 +224,8 @@ export default function ProjectPage({ params }: ProjectPageProps) {
                                                 <Link
                                                     href={`/run?testCaseId=${testCase.id}&name=${encodeURIComponent(testCase.name)}`}
                                                     className="p-2 text-gray-500 hover:text-primary hover:bg-primary/10 rounded-md transition-colors inline-flex items-center justify-center"
-                                                    title="Run Test"
-                                                    aria-label="Run Test"
+                                                    title={t('project.tooltip.run')}
+                                                    aria-label={t('project.tooltip.run')}
                                                 >
                                                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
@@ -237,8 +237,8 @@ export default function ProjectPage({ params }: ProjectPageProps) {
                                                 <Link
                                                     href={`/run?runId=${testCase.testRuns[0].id}&testCaseId=${testCase.id}`}
                                                     className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors inline-flex items-center justify-center animate-pulse"
-                                                    title="View Running Test"
-                                                    aria-label="View Running Test"
+                                                    title={t('project.tooltip.viewRunning')}
+                                                    aria-label={t('project.tooltip.viewRunning')}
                                                 >
                                                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -249,8 +249,8 @@ export default function ProjectPage({ params }: ProjectPageProps) {
                                             <Link
                                                 href={`/test-cases/${testCase.id}/history`}
                                                 className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors inline-flex items-center justify-center"
-                                                title="View History"
-                                                aria-label="View History"
+                                                title={t('project.tooltip.viewHistory')}
+                                                aria-label={t('project.tooltip.viewHistory')}
                                             >
                                                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -263,8 +263,10 @@ export default function ProjectPage({ params }: ProjectPageProps) {
                                                     ? 'text-gray-300 cursor-not-allowed'
                                                     : 'text-gray-400 hover:text-red-600 hover:bg-red-50'
                                                     }`}
-                                                title={testCase.testRuns[0] && ['RUNNING', 'QUEUED'].includes(testCase.testRuns[0].status) ? "Cannot delete while test is running or queued" : "Delete Test Case"}
-                                                aria-label="Delete Test Case"
+                                                title={testCase.testRuns[0] && ['RUNNING', 'QUEUED'].includes(testCase.testRuns[0].status)
+                                                    ? t('project.tooltip.cannotDeleteRunning')
+                                                    : t('project.tooltip.delete')}
+                                                aria-label={t('project.tooltip.delete')}
                                             >
                                                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

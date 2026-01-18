@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useAuth } from '@/app/auth-provider';
 import { config } from '@/config/app';
+import { useI18n } from '@/i18n';
 
 interface FileUploadZoneProps {
     testCaseId?: string;
@@ -15,6 +16,8 @@ interface FileUploadZoneProps {
 export interface FileUploadZoneHandle { open: () => void }
 
 function FileUploadZoneInner({ testCaseId, onUploadComplete, disabled, ensureTestCase, compact }: FileUploadZoneProps, ref: React.Ref<FileUploadZoneHandle>) {
+    const { t } = useI18n();
+
     const [isDragging, setIsDragging] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -34,18 +37,18 @@ function FileUploadZoneInner({ testCaseId, onUploadComplete, disabled, ensureTes
 
     const validateFile = (file: File): string | null => {
         if (file.size > config.files.maxFileSize) {
-            const maxMB = config.files.maxFileSize / 1024 / 1024;
-            return `File "${file.name}" exceeds ${maxMB}MB limit`;
+            const maxMB = Math.floor(config.files.maxFileSize / 1024 / 1024);
+            return t('upload.error.fileTooLarge', { name: file.name, mb: maxMB });
         }
         if (!config.files.allowedMimeTypes.includes(file.type)) {
-            return `File type "${file.type}" is not allowed`;
+            return t('upload.error.fileTypeNotAllowed', { type: file.type });
         }
         return null;
     };
 
     const uploadFile = async (file: File) => {
         const id = effectiveTestCaseId;
-        if (!id) throw new Error('No test case available for upload');
+        if (!id) throw new Error(t('upload.error.noTestCase'));
         const formData = new FormData();
         formData.append('file', file);
         const token = await getAccessToken();
@@ -57,7 +60,7 @@ function FileUploadZoneInner({ testCaseId, onUploadComplete, disabled, ensureTes
 
         if (!response.ok) {
             const data = await response.json();
-            throw new Error(data.error || 'Upload failed');
+            throw new Error(data.error || t('upload.error.uploadFailed'));
         }
 
         return response.json();
@@ -71,9 +74,9 @@ function FileUploadZoneInner({ testCaseId, onUploadComplete, disabled, ensureTes
 
         try {
             if (!effectiveTestCaseId) {
-                if (!ensureTestCase) throw new Error('No test case to attach files to');
+                if (!ensureTestCase) throw new Error(t('upload.error.noTestCaseAttach'));
                 const newId = await ensureTestCase();
-                if (!newId) throw new Error('Failed to create test case');
+                if (!newId) throw new Error(t('upload.error.failedCreateTestCase'));
                 setEffectiveTestCaseId(newId);
             }
             for (const file of Array.from(files)) {
@@ -86,7 +89,7 @@ function FileUploadZoneInner({ testCaseId, onUploadComplete, disabled, ensureTes
             }
             onUploadComplete();
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Upload failed');
+            setError(err instanceof Error ? err.message : t('upload.error.uploadFailed'));
         } finally {
             setIsUploading(false);
         }
@@ -171,7 +174,7 @@ function FileUploadZoneInner({ testCaseId, onUploadComplete, disabled, ensureTes
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                         </svg>
-                        <span className="text-sm text-gray-500">Uploading...</span>
+                        <span className="text-sm text-gray-500">{t('upload.uploading')}</span>
                     </div>
                 ) : (
                     <div className="flex flex-col items-center gap-2">
@@ -179,11 +182,11 @@ function FileUploadZoneInner({ testCaseId, onUploadComplete, disabled, ensureTes
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                         </svg>
                         <div>
-                            <span className="text-sm font-medium text-indigo-600">Click to upload</span>
-                            <span className="text-sm text-gray-500"> or drag and drop</span>
+                            <span className="text-sm font-medium text-indigo-600">{t('upload.clickToUpload')}</span>
+                            <span className="text-sm text-gray-500">{t('upload.orDragDrop')}</span>
                         </div>
                         <span className="text-xs text-gray-400">
-                            Max {config.files.maxFileSize / 1024 / 1024}MB per file
+                            {t('upload.maxPerFile', { mb: Math.floor(config.files.maxFileSize / 1024 / 1024) })}
                         </span>
                     </div>
                 )}

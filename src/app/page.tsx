@@ -3,10 +3,12 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from './auth-provider';
+import { useI18n } from '@/i18n';
 
 export default function Home() {
   const { login, isLoggedIn, isLoading } = useAuth();
   const router = useRouter();
+  const { t } = useI18n();
 
   useEffect(() => {
     if (!isLoading && isLoggedIn) {
@@ -35,13 +37,13 @@ export default function Home() {
             SkyTest Agent
           </h1>
           <p className="text-xl text-gray-600 mb-6 max-w-2xl mx-auto">
-            AI-powered E2E testing with natural language
+            {t('landing.subtitle')}
           </p>
           <button
             onClick={() => login()}
             className="px-8 py-3 text-base font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Login to Start
+            {t('landing.loginToStart')}
           </button>
         </div>
       </section>
@@ -50,7 +52,7 @@ export default function Home() {
       <section id="features" className="py-12 lg:py-16">
         <div className="max-w-6xl mx-auto px-6">
           <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-6">
-            Features
+            {t('landing.features.title')}
           </h2>
           <div className="grid md:grid-cols-2 gap-4 lg:gap-6">
             {/* Multi-Browser Testing */}
@@ -61,10 +63,10 @@ export default function Home() {
                 </svg>
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Multi-Browser Test Flows
+                {t('landing.features.multiBrowser.title')}
               </h3>
               <p className="text-gray-600 text-sm leading-relaxed">
-                Chain tests across separate browser sessions. Perfect for admin panels and CMS workflows.
+                {t('landing.features.multiBrowser.desc')}
               </p>
             </div>
 
@@ -76,10 +78,10 @@ export default function Home() {
                 </svg>
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Natural Language Steps
+                {t('landing.features.naturalLanguage.title')}
               </h3>
               <p className="text-gray-600 text-sm leading-relaxed">
-                Write tests like instructions for a colleague. AI interprets and executes each step.
+                {t('landing.features.naturalLanguage.desc')}
               </p>
             </div>
 
@@ -91,10 +93,10 @@ export default function Home() {
                 </svg>
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Screenshot Evidence
+                {t('landing.features.screenshots.title')}
               </h3>
               <p className="text-gray-600 text-sm leading-relaxed">
-                Automatic screenshots at each step. See exactly what happened during execution.
+                {t('landing.features.screenshots.desc')}
               </p>
             </div>
 
@@ -106,10 +108,10 @@ export default function Home() {
                 </svg>
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Custom Playwright Code
+                {t('landing.features.customCode.title')}
               </h3>
               <p className="text-gray-600 text-sm leading-relaxed">
-                Mix natural language with TypeScript when you need precise control.
+                {t('landing.features.customCode.desc')}
               </p>
             </div>
           </div>
@@ -122,29 +124,29 @@ export default function Home() {
           <div className="grid lg:grid-cols-2 gap-8 items-center">
             <div>
               <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-3">
-                Write tests in minutes
+                {t('landing.example.title')}
               </h2>
               <p className="text-gray-600 mb-4 leading-relaxed">
-                No selectors. No brittle locators. Just describe what to do.
+                {t('landing.example.subtitle')}
               </p>
               <ul className="space-y-2 text-sm text-gray-600">
                 <li className="flex items-start gap-3">
                   <svg className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
-                  AI finds elements using visual understanding
+                  {t('landing.example.bullet1')}
                 </li>
                 <li className="flex items-start gap-3">
                   <svg className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
-                  Tests survive UI changes automatically
+                  {t('landing.example.bullet2')}
                 </li>
                 <li className="flex items-start gap-3">
                   <svg className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
-                  Powered by Playwright and Midscene.js
+                  {t('landing.example.bullet3')}
                 </li>
               </ul>
             </div>
@@ -156,11 +158,21 @@ export default function Home() {
                 <div className="w-3 h-3 rounded-full bg-green-400"></div>
               </div>
               <div className="space-y-2 text-gray-700">
-                <p><span className="text-gray-400">1.</span> Log in with username "admin"</p>
-                <p><span className="text-gray-400">2.</span> Click "New Post" button</p>
-                <p><span className="text-gray-400">3.</span> Enter title "Product Update"</p>
-                <p><span className="text-gray-400">4.</span> Click publish</p>
-                <p><span className="text-gray-400">5.</span> Verify success message appears</p>
+                <p>
+                  <span className="text-gray-400">1.</span> {t('landing.example.step1')}
+                </p>
+                <p>
+                  <span className="text-gray-400">2.</span> {t('landing.example.step2')}
+                </p>
+                <p>
+                  <span className="text-gray-400">3.</span> {t('landing.example.step3')}
+                </p>
+                <p>
+                  <span className="text-gray-400">4.</span> {t('landing.example.step4')}
+                </p>
+                <p>
+                  <span className="text-gray-400">5.</span> {t('landing.example.step5')}
+                </p>
               </div>
             </div>
           </div>
@@ -171,16 +183,14 @@ export default function Home() {
       <section className="py-12 lg:py-16">
         <div className="max-w-2xl mx-auto px-6 text-center">
           <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-3">
-            Ready to simplify testing?
+            {t('landing.cta.title')}
           </h2>
-          <p className="text-gray-600 mb-6">
-            Start writing tests in natural language today.
-          </p>
+          <p className="text-gray-600 mb-6">{t('landing.cta.subtitle')}</p>
           <button
             onClick={() => login()}
             className="px-8 py-3 text-base font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Get Started
+            {t('landing.cta.getStarted')}
           </button>
         </div>
       </section>
@@ -189,7 +199,7 @@ export default function Home() {
       <footer className="py-6 border-t border-gray-100">
         <div className="max-w-6xl mx-auto px-6">
           <p className="text-sm text-gray-500 text-center">
-            &copy; {new Date().getFullYear()} Oursky Ltd.
+            {t('landing.footer', { year: new Date().getFullYear() })}
           </p>
         </div>
       </footer>

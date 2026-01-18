@@ -6,6 +6,7 @@ import React, {
     useEffect,
     useState,
     useCallback,
+    useRef,
 } from "react";
 import type { UserInfo } from "@authgear/web";
 
@@ -22,18 +23,74 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+type AuthgearModule = typeof import("@authgear/web");
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [user, setUser] = useState<UserInfo | null>(null);
 
+    const authgearModulePromiseRef = useRef<Promise<AuthgearModule> | null>(null);
+
+    const ensureAuthgearConfigured = useCallback(async (): Promise<AuthgearModule> => {
+        if (authgearModulePromiseRef.current) {
+            return authgearModulePromiseRef.current;
+        }
+
+        authgearModulePromiseRef.current = (async () => {
+            const authgearModule = await import("@authgear/web");
+            const authgear = authgearModule.default;
+
+            try {
+                const endpoint = process.env.NEXT_PUBLIC_AUTHGEAR_ENDPOINT || "";
+                const clientID = process.env.NEXT_PUBLIC_AUTHGEAR_CLIENT_ID || "";
+
+                const proxyFetch: typeof window.fetch = async (input, init) => {
+                    const req = new Request(input, init);
+
+                    if (endpoint && req.url.startsWith(endpoint)) {
+                        const proxyUrl = new URL('/api/authgear-proxy', window.location.origin);
+                        proxyUrl.searchParams.set('url', req.url);
+
+                        const proxiedHeaders = new Headers(req.headers);
+                        proxiedHeaders.delete('origin');
+                        proxiedHeaders.delete('referer');
+
+                        const method = req.method.toUpperCase();
+                        const body = method === 'GET' || method === 'HEAD' ? undefined : await req.arrayBuffer();
+
+                        return window.fetch(proxyUrl.toString(), {
+                            method,
+                            headers: proxiedHeaders,
+                            body,
+                            redirect: req.redirect,
+                        });
+                    }
+
+                    return window.fetch(req);
+                };
+
+                await authgear.configure({
+                    clientID,
+                    endpoint,
+                    fetch: proxyFetch,
+                });
+            } catch (error) {
+                // Ignore errors caused by repeated configuration.
+                // Any real network/config errors will still surface when starting auth.
+                console.warn("Authgear configure skipped/failed", error);
+            }
+
+            return authgearModule;
+        })();
+
+        return authgearModulePromiseRef.current;
+    }, []);
+
     const initAuthgear = useCallback(async () => {
         try {
-            const authgear = (await import("@authgear/web")).default;
-            await authgear.configure({
-                clientID: process.env.NEXT_PUBLIC_AUTHGEAR_CLIENT_ID || "",
-                endpoint: process.env.NEXT_PUBLIC_AUTHGEAR_ENDPOINT || "",
-            });
+            const authgearModule = await ensureAuthgearConfigured();
+            const authgear = authgearModule.default;
 
             const sessionState = authgear.sessionState;
             if (sessionState === "AUTHENTICATED") {
@@ -49,23 +106,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [ensureAuthgearConfigured]);
 
     useEffect(() => {
         initAuthgear();
     }, [initAuthgear]);
 
     const login = async () => {
-        const authgear = (await import("@authgear/web")).default;
+        const authgearModule = await ensureAuthgearConfigured();
+        const authgear = authgearModule.default;
+
         await authgear.startAuthentication({
             redirectURI: process.env.NEXT_PUBLIC_AUTHGEAR_REDIRECT_URI || "",
-            prompt: "login",
-            scope: ["openid", "offline_access", "https://authgear.com/scopes/full-userinfo"],
-        } as any);
+            prompt: authgearModule.PromptOption.Login,
+        });
     };
 
     const logout = async () => {
-        const authgear = (await import("@authgear/web")).default;
+        const authgearModule = await ensureAuthgearConfigured();
+        const authgear = authgearModule.default;
         await authgear.logout({
             redirectURI: window.location.origin,
         });
@@ -74,16 +133,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const getAccessToken = async () => {
-        const authgear = (await import("@authgear/web")).default;
-        return authgear.accessToken || null;
+        const authgearModule = await ensureAuthgearConfigured();
+        return authgearModule.default.accessToken || null;
     };
 
     const openSettings = async () => {
-        const authgear = (await import("@authgear/web")).default;
-        const { Page } = await import("@authgear/web");
-        await authgear.open(Page.Settings, {
-            redirectURI: window.location.href,
-        } as any);
+        const authgearModule = await ensureAuthgearConfigured();
+        await authgearModule.default.open(authgearModule.Page.Settings, {
+            openInSameTab: true,
+        });
     };
 
     return (

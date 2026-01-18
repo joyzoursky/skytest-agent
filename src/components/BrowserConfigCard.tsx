@@ -1,7 +1,7 @@
 'use client';
 
 import { BrowserConfig } from '@/types';
-import { config } from '@/config/app';
+import { useI18n } from '@/i18n';
 
 interface BrowserEntry {
     id: string;
@@ -29,6 +29,8 @@ export default function BrowserConfigCard({
     onTogglePassword,
     readOnly
 }: BrowserConfigCardProps) {
+    const { t } = useI18n();
+
     const colors = ['bg-blue-500', 'bg-purple-500', 'bg-orange-500', 'bg-green-500', 'bg-pink-500'];
     const colorClass = colors[index % colors.length];
 
@@ -41,7 +43,7 @@ export default function BrowserConfigCard({
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <span className={`w-3 h-3 rounded-full ${colorClass}`}></span>
-                    <h3 className="font-medium text-gray-900">{niceName} Configuration</h3>
+                    <h3 className="font-medium text-gray-900">{t('browserConfig.configuration', { browser: niceName })}</h3>
                 </div>
                 {browsersCount > 1 && !readOnly && (
                     <button
@@ -49,14 +51,14 @@ export default function BrowserConfigCard({
                         onClick={onRemove}
                         className="text-gray-400 hover:text-red-500 text-sm"
                     >
-                        Remove
+                        {t('browserConfig.remove')}
                     </button>
                 )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                    <label className="text-xs font-medium text-gray-500 uppercase">URL</label>
+                    <label className="text-xs font-medium text-gray-500 uppercase">{t('browserConfig.url')}</label>
                     <input
                         type="url"
                         required
@@ -68,7 +70,7 @@ export default function BrowserConfigCard({
                     />
                 </div>
                 <div>
-                    <label className="text-xs font-medium text-gray-500 uppercase">Username</label>
+                    <label className="text-xs font-medium text-gray-500 uppercase">{t('browserConfig.username')}</label>
                     <input
                         type="text"
                         className="input-field mt-1"
@@ -78,7 +80,7 @@ export default function BrowserConfigCard({
                     />
                 </div>
                 <div>
-                    <label className="text-xs font-medium text-gray-500 uppercase">Password</label>
+                    <label className="text-xs font-medium text-gray-500 uppercase">{t('browserConfig.password')}</label>
                     <div className="relative mt-1">
                         <input
                             type="text"
@@ -92,7 +94,7 @@ export default function BrowserConfigCard({
                             onClick={onTogglePassword}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-600"
                         >
-                            {showPassword ? 'Hide' : 'Show'}
+                            {showPassword ? t('common.hide') : t('common.show')}
                         </button>
                     </div>
                 </div>

@@ -4,6 +4,7 @@ import { TestCaseFile } from '@/types';
 import { config } from '@/config/app';
 import { useAuth } from '@/app/auth-provider';
 import { useEffect, useState } from 'react';
+import { useI18n } from '@/i18n';
 
 interface FileListProps {
     files: TestCaseFile[];
@@ -71,7 +72,9 @@ function getFileIcon(mimeType: string): React.ReactNode {
 
 export default function FileList({ files, testCaseId, onDelete, readOnly }: FileListProps) {
     const { getAccessToken } = useAuth();
+    const { t } = useI18n();
     const [token, setToken] = useState<string | null>(null);
+    const [copiedMap, setCopiedMap] = useState<Record<string, boolean>>({});
 
     useEffect(() => {
         (async () => {
@@ -101,17 +104,15 @@ export default function FileList({ files, testCaseId, onDelete, readOnly }: File
             });
 
             if (!response.ok) {
-                throw new Error('Failed to delete file');
+                throw new Error(t('file.deleteFailed'));
             }
 
             onDelete?.(fileId);
         } catch (error) {
             console.error('Failed to delete file:', error);
-            alert('Failed to delete file');
+            alert(t('file.deleteFailed'));
         }
     };
-
-    const [copiedMap, setCopiedMap] = useState<Record<string, boolean>>({});
 
     const copyPath = async (fileId: string, text: string) => {
         try {
@@ -164,7 +165,7 @@ export default function FileList({ files, testCaseId, onDelete, readOnly }: File
                                             type="button"
                                             onClick={() => copyPath(file.id, relativePath)}
                                             className="p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-200 rounded"
-                                            title="Copy path"
+                                            title={t('file.copyPath')}
                                         >
                                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -172,7 +173,7 @@ export default function FileList({ files, testCaseId, onDelete, readOnly }: File
                                         </button>
                                         {copiedMap[file.id] && (
                                             <span className="text-[10px] text-gray-600 bg-gray-100 border border-gray-200 px-1.5 py-0.5 rounded">
-                                                Copied!
+                                                {t('common.copied')}
                                             </span>
                                         )}
                                     </div>
@@ -183,7 +184,7 @@ export default function FileList({ files, testCaseId, onDelete, readOnly }: File
                                     type="button"
                                     onClick={() => handleDownload(file)}
                                     className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
-                                    title="Download"
+                                    title={t('file.download')}
                                 >
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -194,7 +195,7 @@ export default function FileList({ files, testCaseId, onDelete, readOnly }: File
                                         type="button"
                                         onClick={() => handleDelete(file.id)}
                                         className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                                        title="Delete"
+                                        title={t('file.delete')}
                                     >
                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

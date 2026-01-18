@@ -5,6 +5,7 @@ import { useAuth } from '../auth-provider';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { formatDateTime } from '@/utils/dateFormatter';
+import { useI18n } from '@/i18n';
 
 interface TestRunInfo {
     id: string;
@@ -40,6 +41,8 @@ interface ApiKeyState {
 export default function UsagePage() {
     const { isLoggedIn, isLoading: isAuthLoading, getAccessToken } = useAuth();
     const router = useRouter();
+    const { t } = useI18n();
+
     const [records, setRecords] = useState<UsageRecord[]>([]);
     const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 10, total: 0, totalPages: 0 });
     const [isLoading, setIsLoading] = useState(true);
@@ -104,12 +107,12 @@ export default function UsagePage() {
         setKeySuccess(null);
 
         if (!newApiKey.trim()) {
-            setKeyError('Please enter an API key');
+            setKeyError(t('usage.apiKey.error.enter'));
             return;
         }
 
         if (!newApiKey.startsWith('sk-')) {
-            setKeyError('API key should start with "sk-"');
+            setKeyError(t('usage.apiKey.error.prefix'));
             return;
         }
 
@@ -131,13 +134,13 @@ export default function UsagePage() {
                 const data = await res.json();
                 setApiKeyState({ hasKey: true, maskedKey: data.maskedKey });
                 setNewApiKey('');
-                setKeySuccess('API key saved successfully');
+                setKeySuccess(t('usage.apiKey.success.saved'));
             } else {
                 const data = await res.json();
-                setKeyError(data.error || 'Failed to save API key');
+                setKeyError(data.error || t('usage.apiKey.error.saveFailed'));
             }
-        } catch (error) {
-            setKeyError('Failed to save API key');
+        } catch {
+            setKeyError(t('usage.apiKey.error.saveFailed'));
         } finally {
             setIsSavingKey(false);
         }
@@ -158,12 +161,12 @@ export default function UsagePage() {
 
             if (res.ok) {
                 setApiKeyState({ hasKey: false, maskedKey: null });
-                setKeySuccess('API key removed');
+                setKeySuccess(t('usage.apiKey.success.removed'));
             } else {
-                setKeyError('Failed to remove API key');
+                setKeyError(t('usage.apiKey.error.removeFailed'));
             }
-        } catch (error) {
-            setKeyError('Failed to remove API key');
+        } catch {
+            setKeyError(t('usage.apiKey.error.removeFailed'));
         }
     };
 
@@ -181,27 +184,29 @@ export default function UsagePage() {
     };
 
     if (isAuthLoading || isLoading) {
-        return <div className="min-h-screen flex items-center justify-center text-gray-500">Loading...</div>;
+        return <div className="min-h-screen flex items-center justify-center text-gray-500">{t('common.loading')}</div>;
     }
+
+    const url = 'https://openrouter.ai/settings/keys';
 
     return (
         <main className="min-h-screen bg-gray-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 
                 {/* API Key Section */}
-                <h1 className="text-2xl font-bold text-gray-700 mb-4">API Key</h1>
+                <h1 className="text-2xl font-bold text-gray-700 mb-4">{t('usage.apiKey.title')}</h1>
                 <div className="mb-12">
                     <p className="text-sm text-gray-500 mb-3">
-                        Enter your OpenRouter API Key here. Visit{' '}
+                        {t('usage.apiKey.descPrefix')}{' '}
                         <a
-                            href="https://openrouter.ai/settings/keys"
+                            href={url}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-blue-600 hover:text-blue-800 underline"
                         >
-                            https://openrouter.ai/settings/keys
-                        </a>
-                        {' '}to get a key.
+                            {url}
+                        </a>{' '}
+                        {t('usage.apiKey.descSuffix')}
                     </p>
                     {apiKeyState.hasKey ? (
                         <div className="flex items-center gap-3">
@@ -212,7 +217,7 @@ export default function UsagePage() {
                                 onClick={handleDeleteApiKey}
                                 className="text-sm text-red-600 hover:text-red-800"
                             >
-                                Remove
+                                {t('usage.apiKey.remove')}
                             </button>
                         </div>
                     ) : (
@@ -221,7 +226,7 @@ export default function UsagePage() {
                                 type="password"
                                 value={newApiKey}
                                 onChange={(e) => setNewApiKey(e.target.value)}
-                                placeholder="sk-or-v1-..."
+                                placeholder={t('usage.apiKey.placeholder')}
                                 className="w-80 px-3 py-2 text-sm bg-white border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             />
                             <button
@@ -229,7 +234,7 @@ export default function UsagePage() {
                                 disabled={isSavingKey}
                                 className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                             >
-                                {isSavingKey ? 'Saving...' : 'Save'}
+                                {isSavingKey ? t('usage.apiKey.saving') : t('usage.apiKey.save')}
                             </button>
                         </div>
                     )}
@@ -238,23 +243,23 @@ export default function UsagePage() {
                 </div>
 
                 {/* Usage History Section */}
-                <h2 className="text-2xl font-bold text-gray-700 mb-4">Usage History</h2>
+                <h2 className="text-2xl font-bold text-gray-700 mb-4">{t('usage.history.title')}</h2>
                 <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Time</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions Count</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('usage.table.dateTime')}</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('usage.table.type')}</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('usage.table.description')}</th>
+                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t('usage.table.actionsCount')}</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {records.length === 0 ? (
                                     <tr>
                                         <td colSpan={4} className="px-4 py-8 text-center text-gray-500">
-                                            No usage records found.
+                                            {t('usage.noUsageRecords')}
                                         </td>
                                     </tr>
                                 ) : (
@@ -266,7 +271,7 @@ export default function UsagePage() {
                                                     {formatDateTime(record.createdAt)}
                                                 </td>
                                                 <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                                                    {record.type === 'TEST_RUN' ? 'Test Run' : record.type}
+                                                    {record.type === 'TEST_RUN' ? t('usage.type.testRun') : record.type}
                                                 </td>
                                                 <td className="px-4 py-3 text-sm text-gray-500">
                                                     {link ? (
@@ -297,12 +302,16 @@ export default function UsagePage() {
                     <div className="flex items-center gap-4">
                         <p className="text-sm text-gray-500">
                             {pagination.total > 0
-                                ? `Showing ${((pagination.page - 1) * pagination.limit) + 1} to ${Math.min(pagination.page * pagination.limit, pagination.total)} of ${pagination.total}`
-                                : 'No records'
+                                ? t('usage.pagination.showing', {
+                                    from: ((pagination.page - 1) * pagination.limit) + 1,
+                                    to: Math.min(pagination.page * pagination.limit, pagination.total),
+                                    total: pagination.total
+                                })
+                                : t('common.noRecords')
                             }
                         </p>
                         <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-500">Rows:</span>
+                            <span className="text-sm text-gray-500">{t('common.rows')}</span>
                             <select
                                 value={pagination.limit}
                                 onChange={(e) => handleLimitChange(Number(e.target.value))}
@@ -320,7 +329,7 @@ export default function UsagePage() {
                             disabled={pagination.page === 1 || pagination.totalPages === 0}
                             className="px-3 py-1.5 text-sm text-gray-500 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            Previous
+                            {t('common.previous')}
                         </button>
                         {pagination.totalPages > 0 && (
                             <div className="flex items-center gap-1">
@@ -343,7 +352,7 @@ export default function UsagePage() {
                                                 pagination.page === pageNum
                                                     ? 'bg-gray-500 text-white'
                                                     : 'text-gray-500 border border-gray-300 hover:bg-gray-50'
-                                            }`}
+                                                }`}
                                         >
                                             {pageNum}
                                         </button>
@@ -356,7 +365,7 @@ export default function UsagePage() {
                             disabled={pagination.page === pagination.totalPages || pagination.totalPages === 0}
                             className="px-3 py-1.5 text-sm text-gray-500 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            Next
+                            {t('common.next')}
                         </button>
                     </div>
                 </div>

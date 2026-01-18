@@ -133,7 +133,7 @@ export default function StepFileSelector({
 
             {selectedFiles.length > 0 && (
                 <p className="text-[10px] text-gray-400 mt-1">
-                    These files will be provided to the browser's file chooser dialog
+                    These files will be provided to the browser&apos;s file chooser dialog
                 </p>
             )}
         </div>

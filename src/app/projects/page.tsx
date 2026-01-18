@@ -5,15 +5,16 @@ import { useAuth } from "../auth-provider";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Modal from "@/components/Modal";
-import LoadingSkeleton from "@/components/LoadingSkeleton";
 import { formatDateTime } from "@/utils/dateFormatter";
 import { useProjects } from "@/hooks/useProjects";
-import { Project } from "@/types";
+import { useI18n } from "@/i18n";
 
 export default function ProjectsPage() {
     const { user, isLoggedIn, isLoading: isAuthLoading, getAccessToken } = useAuth();
     const router = useRouter();
-    const { projects, loading: isLoading, error, addProject, removeProject, updateProject, refresh } = useProjects(user?.sub || '', getAccessToken);
+    const { t } = useI18n();
+
+    const { projects, loading: isLoading, addProject, removeProject, refresh } = useProjects(user?.sub || '', getAccessToken);
     const [isCreating, setIsCreating] = useState(false);
     const [newProjectName, setNewProjectName] = useState("");
     const [createError, setCreateError] = useState("");
@@ -49,10 +50,10 @@ export default function ProjectsPage() {
                 setIsCreating(false);
                 setCreateError("");
             } else {
-                setCreateError("Failed to create project");
+                setCreateError(t('projects.createError'));
             }
-        } catch (error) {
-            setCreateError("Failed to create project");
+        } catch {
+            setCreateError(t('projects.createError'));
         }
     };
 
@@ -90,7 +91,7 @@ export default function ProjectsPage() {
             });
 
             if (response.ok) {
-                const updatedProject = await response.json();
+                await response.json();
                 refresh();
                 setEditModal({ isOpen: false, projectId: "", currentName: "" });
             }
@@ -112,13 +113,13 @@ export default function ProjectsPage() {
             <Modal
                 isOpen={deleteModal.isOpen}
                 onClose={() => setDeleteModal({ isOpen: false, projectId: "", projectName: "" })}
-                title="Delete Project"
+                title={t('projects.deleteProject.title')}
                 onConfirm={handleDeleteProject}
-                confirmText="Delete"
+                confirmText={t('projects.deleteProject.confirm')}
                 confirmVariant="danger"
             >
                 <p className="text-gray-700">
-                    Are you sure you want to delete <span className="font-semibold">{deleteModal.projectName}</span>? This will permanently delete all test cases in this project.
+                    {t('projects.deleteProject.body', { name: deleteModal.projectName })}
                 </p>
             </Modal>
 
@@ -128,20 +129,20 @@ export default function ProjectsPage() {
                     setEditModal({ isOpen: false, projectId: "", currentName: "" });
                     setEditName("");
                 }}
-                title="Edit Project Name"
+                title={t('projects.editProject.title')}
                 onConfirm={handleEditProject}
-                confirmText="Save"
+                confirmText={t('projects.editProject.save')}
             >
                 <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">
-                        Project Name
+                        {t('projects.projectName')}
                     </label>
                     <input
                         type="text"
                         value={editName}
                         onChange={(e) => setEditName(e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
-                        placeholder="Enter project name"
+                        placeholder={t('projects.enterProjectName')}
                         autoFocus
                     />
                 </div>
@@ -149,12 +150,12 @@ export default function ProjectsPage() {
 
             <div className="max-w-5xl mx-auto">
                 <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900">Projects</h1>
+                    <h1 className="text-3xl font-bold text-gray-900">{t('projects.title')}</h1>
                     <button
                         onClick={() => setIsCreating(true)}
                         className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
                     >
-                        New Project
+                        {t('projects.newProject')}
                     </button>
                 </div>
 
@@ -165,7 +166,7 @@ export default function ProjectsPage() {
                                 type="text"
                                 value={newProjectName}
                                 onChange={(e) => setNewProjectName(e.target.value)}
-                                placeholder="Project Name"
+                                placeholder={t('projects.newProject.formPlaceholder')}
                                 className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
                                 autoFocus
                             />
@@ -174,14 +175,14 @@ export default function ProjectsPage() {
                                 disabled={!newProjectName.trim()}
                                 className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
                             >
-                                Create
+                                {t('projects.create')}
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setIsCreating(false)}
                                 className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
                             >
-                                Cancel
+                                {t('projects.cancel')}
                             </button>
                         </form>
                         {createError && <p className="text-red-500 text-sm mt-2">{createError}</p>}
@@ -208,8 +209,8 @@ export default function ProjectsPage() {
                                             setEditName(project.name);
                                         }}
                                         className="p-2 text-gray-400 hover:text-primary transition-colors"
-                                        title="Edit Project"
-                                        aria-label="Edit Project"
+                                        title={t('projects.tooltip.edit')}
+                                        aria-label={t('projects.tooltip.edit')}
                                     >
                                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -225,8 +226,8 @@ export default function ProjectsPage() {
                                             ? "text-gray-300 cursor-not-allowed"
                                             : "text-gray-400 hover:text-red-600"
                                             }`}
-                                        title={project.hasActiveRuns ? "Cannot delete project with running tests" : "Delete Project"}
-                                        aria-label="Delete Project"
+                                        title={project.hasActiveRuns ? t('projects.tooltip.cannotDeleteRunning') : t('projects.tooltip.delete')}
+                                        aria-label={t('projects.tooltip.delete')}
                                     >
                                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -236,10 +237,10 @@ export default function ProjectsPage() {
                             </div>
                             <Link href={`/projects/${project.id}`} className="block flex-1">
                                 <p className="text-sm text-gray-500">
-                                    {project._count?.testCases || 0} Test Cases
+                                    {t('projects.testCasesCount', { count: project._count?.testCases || 0 })}
                                 </p>
                                 <p className="text-xs text-gray-400 mt-4">
-                                    Last updated: {formatDateTime(project.updatedAt)}
+                                    {t('projects.lastUpdated', { time: formatDateTime(project.updatedAt) })}
                                 </p>
                             </Link>
                         </div>
@@ -253,8 +254,8 @@ export default function ProjectsPage() {
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                             </svg>
                         </div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">No projects yet</h3>
-                        <p className="text-gray-500 mb-6">Get started by creating your first project to organize your test cases.</p>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('projects.noProjects.title')}</h3>
+                        <p className="text-gray-500 mb-6">{t('projects.noProjects.subtitle')}</p>
                         <button
                             onClick={() => setIsCreating(true)}
                             className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors inline-flex items-center gap-2"
@@ -262,11 +263,11 @@ export default function ProjectsPage() {
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                             </svg>
-                            Create Project
+                            {t('projects.noProjects.create')}
                         </button>
                     </div>
                 )}
             </div>
-        </main >
+        </main>
     );
 }

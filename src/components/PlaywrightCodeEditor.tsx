@@ -2,6 +2,7 @@
 
 import Editor, { OnMount } from '@monaco-editor/react';
 import { useCallback, useRef } from 'react';
+import { useI18n } from '@/i18n';
 
 interface PlaywrightCodeEditorProps {
     value: string;
@@ -18,6 +19,7 @@ export default function PlaywrightCodeEditor({
     onValidationChange,
     height = '180px'
 }: PlaywrightCodeEditorProps) {
+    const { t } = useI18n();
     const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
 
     const handleEditorDidMount: OnMount = (editor, monaco) => {
@@ -166,7 +168,7 @@ export default function PlaywrightCodeEditor({
                 }}
                 loading={
                     <div className="h-full flex items-center justify-center bg-gray-50 text-gray-400 text-sm">
-                        Loading editor...
+                        {t('step.editor.loading')}
                     </div>
                 }
             />

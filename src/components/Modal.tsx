@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { useI18n } from '@/i18n';
 
 interface ModalProps {
     isOpen: boolean;
@@ -19,10 +20,11 @@ export default function Modal({
     title,
     children,
     onConfirm,
-    confirmText = 'Confirm',
-    cancelText = 'Cancel',
+    confirmText,
+    cancelText,
     confirmVariant = 'primary'
 }: ModalProps) {
+    const { t } = useI18n();
     const modalRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -42,6 +44,9 @@ export default function Modal({
             document.body.style.overflow = 'unset';
         };
     }, [isOpen, onClose]);
+
+    const effectiveCancelText = cancelText ?? t('common.cancel');
+    const effectiveConfirmText = confirmText ?? t('common.confirm');
 
     if (!isOpen) return null;
 
@@ -79,7 +84,7 @@ export default function Modal({
                         onClick={onClose}
                         className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
                     >
-                        {cancelText}
+                        {effectiveCancelText}
                     </button>
                     {onConfirm && (
                         <button
@@ -93,7 +98,7 @@ export default function Modal({
                                     : 'bg-primary hover:bg-primary/90'
                             }`}
                         >
-                            {confirmText}
+                            {effectiveConfirmText}
                         </button>
                     )}
                 </div>
