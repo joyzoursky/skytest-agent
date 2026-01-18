@@ -241,10 +241,10 @@ export default function HistoryPage({ params }: { params: Promise<{ id: string }
                 <h1 className="text-3xl font-bold text-gray-900 mb-8">{t('history.title')}</h1>
 
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                    <div className="grid grid-cols-12 gap-4 p-4 border-b border-gray-200 bg-gray-50 text-sm font-medium text-gray-500">
+                    <div className="grid grid-cols-12 gap-4 p-4 border-b border-gray-200 bg-gray-50 text-sm font-medium text-gray-500 items-center">
                         <div className="col-span-3">{t('history.table.status')}</div>
                         <div className="col-span-5">{t('history.table.date')}</div>
-                        <div className="col-span-4 text-right">{t('history.table.actions')}</div>
+                        <div className="col-span-4 flex justify-end">{t('history.table.actions')}</div>
                     </div>
 
                     {testRuns.length === 0 ? (
@@ -276,11 +276,11 @@ export default function HistoryPage({ params }: { params: Promise<{ id: string }
                                         <div className="col-span-5 text-sm text-gray-500">
                                             {formatDateTime(run.createdAt)}
                                         </div>
-                                        <div className="col-span-4 flex justify-end gap-2">
+                                        <div className="col-span-4 flex items-center justify-end gap-2">
                                             {isRunRunningOrQueued ? (
                                                 <Link
                                                     href={`/run?runId=${run.id}&testCaseId=${id}`}
-                                                    className="px-3 py-1.5 text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 text-sm font-medium rounded transition-colors flex items-center gap-1 animate-pulse"
+                                                    className="px-3 py-1.5 text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 text-sm font-medium rounded transition-colors flex items-center gap-1 animate-pulse whitespace-nowrap w-fit"
                                                 >
                                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -291,7 +291,7 @@ export default function HistoryPage({ params }: { params: Promise<{ id: string }
                                             ) : (
                                                 <Link
                                                     href={`/test-cases/${id}/history/${run.id}`}
-                                                    className="px-3 py-1.5 text-primary hover:text-primary/80 text-sm font-medium hover:bg-blue-50 rounded transition-colors"
+                                                    className="px-3 py-1.5 text-primary hover:text-primary/80 text-sm font-medium hover:bg-blue-50 rounded transition-colors inline-flex items-center whitespace-nowrap w-fit"
                                                 >
                                                     {t('history.viewDetails')}
                                                 </Link>
@@ -299,7 +299,7 @@ export default function HistoryPage({ params }: { params: Promise<{ id: string }
                                             <button
                                                 onClick={() => setDeleteModal({ isOpen: true, runId: run.id, status: run.status })}
                                                 disabled={isRunRunningOrQueued}
-                                                className={`p-2 transition-colors ${isRunRunningOrQueued
+                                                className={`p-2 transition-colors shrink-0 ${isRunRunningOrQueued
                                                     ? 'text-gray-300 cursor-not-allowed'
                                                     : 'text-gray-400 hover:text-red-600'
                                                     }`}
