@@ -1,27 +1,56 @@
 # SkyTest Agent
 
-AI-powered web testing. Write test scenarios in plain English and watch the AI execute them.
+A free, open-source, self-hosted AI agent for validating real user flows in web applications.
+
+SkyTest Agent controls a real browser, follows plain-language instructions, and verifies what users actually see on screen. It is designed to complement (not replace) traditional test frameworks.
+
+## What SkyTest Agent Is (and Is Not)
+
+**SkyTest Agent is:**
+- A lightweight AI agent for validating end-to-end user flows
+- Visual-first (screenshot-based) rather than selector-heavy
+- Useful for fast reality checks, exploratory validation, and internal workflows
+- Fully self-hosted and open source
+
+**SkyTest Agent is not:**
+- A full replacement for Playwright / Cypress / Selenium
+- A no-maintenance “AI testing solution”
+- Optimized for large, long-running regression suites
+
+If you already use traditional E2E automation, SkyTest Agent fits best **around it**, not instead of it.
 
 ## Features
 
-- Natural language test descriptions
-- Real-time execution with live logs
-- Multi-browser parallel execution
-- Custom Playwright code steps
-- File upload for test inputs
+- Plain-language test instructions (no XPath or brittle selectors)
+- AI agent controlling a real browser
+- Visual validation based on what appears on screen
+- Live execution with step-by-step logs
+- Parallel execution across multiple browsers
+- Optional custom Playwright code steps
+- File upload support for test inputs
 - Project and test case management
-- Import/export test cases
-- User-provided API keys (BYOK)
+- Import and export of test cases
+- Bring Your Own API Key (BYOK)
+
+## How It Works (High Level)
+
+1. Describe a user flow in natural language
+2. SkyTest Agent launches a real browser
+3. The agent follows the instructions step by step
+4. Validation is performed visually using screenshots
+5. Results include logs and visual evidence
+
+This approach reduces flakiness caused by minor UI or DOM changes, while keeping results debuggable.
 
 ## Tech Stack
 
-- [Next.js 16](https://nextjs.org/) - Framework
-- [Midscene.js](https://midscenejs.com/) - AI agent
-- [Playwright](https://playwright.dev/) - Browser automation
-- [Prisma](https://www.prisma.io/) + SQLite - Database
-- [Authgear](https://www.authgear.com/) - Authentication
+- [Next.js 16](https://nextjs.org/) — Web framework
+- [Midscene.js](https://midscenejs.com/) — AI browser agent
+- [Playwright](https://playwright.dev/) — Browser automation
+- [Prisma](https://www.prisma.io/) + SQLite — Database
+- [Authgear](https://www.authgear.com/) — Authentication
 
-## Quick Start
+## Quick Start (Development)
 
 ```bash
 npm install
