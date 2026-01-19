@@ -51,7 +51,7 @@ function RunPageContent() {
     const testCaseName = searchParams.get("name");
     const [initialData, setInitialData] = useState<TestData | undefined>(undefined);
     const [originalName, setOriginalName] = useState<string | null>(null);
-    const [originalMode, setOriginalMode] = useState<'simple' | 'builder' | null>(null);
+    const [originalDisplayId, setOriginalDisplayId] = useState<string | null>(null);
 
     const [activeRunId, setActiveRunId] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -127,19 +127,22 @@ function RunPageContent() {
     }, [eventSource]);
 
     useEffect(() => {
+        if (isAuthLoading) return;
+        if (!isLoggedIn) return;
+
         if (testCaseId) {
             fetchTestCase(testCaseId);
-            refreshFiles();
+            refreshFiles(testCaseId);
         } else if (testCaseName) {
             setInitialData({ name: testCaseName, url: '', prompt: '' });
         }
-    }, [testCaseId, testCaseName]);
+    }, [testCaseId, testCaseName, isAuthLoading, isLoggedIn]);
 
     const fetchTestCase = async (id: string) => {
         try {
             const token = await getAccessToken();
             const headers: HeadersInit = token ? { 'Authorization': `Bearer ${token}` } : {};
-            const response = await fetch(`/api/test-cases/${id}`, { headers });
+            const response = await fetch(`/api/test-cases/${id}`, { headers, cache: 'no-store' });
             if (response.ok) {
                 const data = await response.json();
                 const hasSteps = data.steps && data.steps.length > 0;
@@ -157,7 +160,7 @@ function RunPageContent() {
                 });
 
                 setOriginalName(data.name);
-                setOriginalMode(mode);
+                setOriginalDisplayId(data.displayId || null);
                 setProjectIdFromTestCase(data.projectId);
                 fetchProjectName(data.projectId);
                 setDisplayId(data.displayId || '');
@@ -221,13 +224,20 @@ function RunPageContent() {
         }
     };
 
-    const refreshFiles = async () => {
-        const id = testCaseId || currentTestCaseId;
+    const refreshFilesRef = useRef<string | null>(null);
+
+    const refreshFiles = async (overrideId?: string) => {
+        const id = overrideId || refreshFilesRef.current || testCaseId || currentTestCaseId;
         if (!id) return;
+
+        if (overrideId && !currentTestCaseId && !testCaseId) {
+            setCurrentTestCaseId(overrideId);
+        }
+
         try {
             const token = await getAccessToken();
             const headers: HeadersInit = token ? { 'Authorization': `Bearer ${token}` } : {};
-            const response = await fetch(`/api/test-cases/${id}/files`, { headers });
+            const response = await fetch(`/api/test-cases/${id}/files`, { headers, cache: 'no-store' });
             if (response.ok) {
                 const files = await response.json();
                 setTestCaseFiles(files);
@@ -235,6 +245,26 @@ function RunPageContent() {
         } catch (error) {
             console.error("Failed to fetch files", error);
         }
+    };
+
+    const handleFilesChange = async (overrideId?: string, uploadedFiles?: TestCaseFile[]) => {
+        if (overrideId && !currentTestCaseId && !testCaseId) {
+            setCurrentTestCaseId(overrideId);
+        }
+
+        if (overrideId) {
+            refreshFilesRef.current = overrideId;
+        }
+
+        if (uploadedFiles && uploadedFiles.length > 0) {
+            setTestCaseFiles((prev) => {
+                const seen = new Set(prev.map(f => f.id));
+                const merged = [...uploadedFiles.filter(f => !seen.has(f.id)), ...prev];
+                return merged;
+            });
+        }
+
+        await refreshFiles(overrideId);
     };
 
     const connectToRun = async (runId: string) => {
@@ -315,56 +345,66 @@ function RunPageContent() {
         }
     };
 
-    const handleRunTest = async (data: TestData) => {
+    const saveTestCase = useCallback(async (data: TestData, options?: { saveDraft?: boolean }): Promise<string | null> => {
+        const effectiveTestCaseId = testCaseId || currentTestCaseId;
+        const effectiveProjectId = projectId || projectIdFromTestCase;
+
+        const nameChanged = originalName && data.name && data.name !== originalName;
+        const displayIdChanged = originalDisplayId !== null && displayId !== (originalDisplayId || '');
+        const shouldCreateNew = nameChanged && displayIdChanged;
+
+        const token = await getAccessToken();
+        const headers: HeadersInit = {
+            "Content-Type": "application/json",
+            ...(token ? { "Authorization": `Bearer ${token}` } : {})
+        };
+
+        if (effectiveTestCaseId && !shouldCreateNew) {
+            const response = await fetch(`/api/test-cases/${effectiveTestCaseId}`, {
+                method: "PUT",
+                headers,
+                body: JSON.stringify({ ...data, displayId, ...(options?.saveDraft ? { saveDraft: true } : {}) }),
+            });
+            if (!response.ok) {
+                throw new Error('Failed to save test case');
+            }
+            setIsDirty(false);
+            return effectiveTestCaseId;
+        } else {
+            if (!effectiveProjectId) {
+                return null;
+            }
+
+            const response = await fetch(`/api/projects/${effectiveProjectId}/test-cases`, {
+                method: "POST",
+                headers,
+                body: JSON.stringify({ ...data, displayId }),
+            });
+            if (!response.ok) {
+                throw new Error('Failed to create test case');
+            }
+
+            const newTestCase = await response.json();
+            setCurrentTestCaseId(newTestCase.id);
+            window.history.replaceState(null, "", `?testCaseId=${newTestCase.id}&projectId=${effectiveProjectId}`);
+            setOriginalName(data.name || null);
+            setOriginalDisplayId(displayId || null);
+            setIsDirty(false);
+            return newTestCase.id;
+        }
+    }, [testCaseId, currentTestCaseId, projectId, projectIdFromTestCase, originalName, originalDisplayId, displayId, getAccessToken]);
+
+    const handleRunTest = useCallback(async (data: TestData) => {
         setIsLoading(true);
         setResult({
             status: 'IDLE',
             events: [],
         });
 
-        let activeTestCaseId = testCaseId;
-        const currentMode = (data.steps?.length || data.browserConfig) ? 'builder' : 'simple';
+        let activeTestCaseId: string | null;
 
         try {
-            const hasSteps = data.steps && data.steps.length > 0;
-            const hasBrowserConfig = data.browserConfig && Object.keys(data.browserConfig).length > 0;
-
-            const nameChanged = originalName && data.name && data.name !== originalName;
-            const modeChanged = originalMode && currentMode !== originalMode;
-            const shouldCreateNew = nameChanged || modeChanged;
-
-            const token = await getAccessToken();
-            const headers: HeadersInit = {
-                "Content-Type": "application/json",
-                ...(token ? { "Authorization": `Bearer ${token}` } : {})
-            };
-
-            if (activeTestCaseId && !shouldCreateNew) {
-                await fetch(`/api/test-cases/${activeTestCaseId}`, {
-                    method: "PUT",
-                    headers,
-                    body: JSON.stringify(data),
-                });
-            } else if ((activeTestCaseId && shouldCreateNew) || (!activeTestCaseId && projectId && data.name)) {
-                const effectiveProjectId = projectId || projectIdFromTestCase;
-                if (effectiveProjectId) {
-                    const response = await fetch(`/api/projects/${effectiveProjectId}/test-cases`, {
-                        method: "POST",
-                        headers,
-                        body: JSON.stringify(data),
-                    });
-                    if (response.ok) {
-                        const newTestCase = await response.json();
-                        activeTestCaseId = newTestCase.id;
-                        setCurrentTestCaseId(activeTestCaseId);
-                        window.history.replaceState(null, "", `?testCaseId=${activeTestCaseId}&projectId=${effectiveProjectId}`);
-                        setOriginalName(data.name || null);
-                        setOriginalMode(currentMode);
-                    } else {
-                        throw new Error('Failed to create test case');
-                    }
-                }
-            }
+            activeTestCaseId = await saveTestCase(data);
         } catch (error) {
             console.error("Failed to save test case", error);
             setResult({ status: 'FAIL', events: [], error: t('run.error.failedToSave') });
@@ -404,7 +444,7 @@ function RunPageContent() {
             setResult(prev => ({ ...prev, status: 'FAIL', error: errorMessage }));
             setIsLoading(false);
         }
-    };
+    }, [saveTestCase, getAccessToken, t, connectToRun]);
 
     const handleSaveDraft = useCallback(async (data: TestData) => {
         if (!data.name?.trim()) {
@@ -412,63 +452,28 @@ function RunPageContent() {
             return;
         }
 
+        const effectiveProjectId = projectId || projectIdFromTestCase;
+        if (!effectiveProjectId && !testCaseId && !currentTestCaseId) {
+            alert(t('run.error.noProjectSelected'));
+            return;
+        }
+
         setIsSaving(true);
         try {
-            const token = await getAccessToken();
-            const headers: HeadersInit = {
-                "Content-Type": "application/json",
-                ...(token ? { "Authorization": `Bearer ${token}` } : {})
-            };
+            await saveTestCase(data, { saveDraft: true });
 
-            const effectiveTestCaseId = testCaseId || currentTestCaseId;
-
-            if (effectiveTestCaseId) {
-                const response = await fetch(`/api/test-cases/${effectiveTestCaseId}`, {
-                    method: "PUT",
-                    headers,
-                    body: JSON.stringify({ ...data, displayId, saveDraft: true }),
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to save draft');
-                }
-
-                const updatedTestCase = await response.json();
-                setTestCaseStatus(updatedTestCase.status);
+            if (effectiveProjectId) {
+                router.push(`/projects/${effectiveProjectId}`);
             } else {
-                const effectiveProjectId = projectId || projectIdFromTestCase;
-                if (!effectiveProjectId) {
-                    alert(t('run.error.noProjectSelected'));
-                    return;
-                }
-
-                const response = await fetch(`/api/projects/${effectiveProjectId}/test-cases`, {
-                    method: "POST",
-                    headers,
-                    body: JSON.stringify({ ...data, displayId }),
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to create test case');
-                }
-
-                const newTestCase = await response.json();
-                setCurrentTestCaseId(newTestCase.id);
-                setTestCaseStatus(newTestCase.status);
-                window.history.replaceState(null, "", `?testCaseId=${newTestCase.id}&projectId=${effectiveProjectId}`);
-                setOriginalName(data.name || null);
-                const hasSteps = data.steps?.length || data.browserConfig;
-                setOriginalMode(hasSteps ? 'builder' : 'simple');
+                router.push('/projects');
             }
-
-            setIsDirty(false);
         } catch (error) {
             console.error('Failed to save draft', error);
             alert(t('run.error.failedToSave'));
         } finally {
             setIsSaving(false);
         }
-    }, [testCaseId, currentTestCaseId, projectId, projectIdFromTestCase, displayId, getAccessToken, t]);
+    }, [testCaseId, currentTestCaseId, projectId, projectIdFromTestCase, saveTestCase, t, router]);
 
     const handleDiscard = useCallback(() => {
         const effectiveProjectId = projectId || projectIdFromTestCase;
@@ -501,9 +506,12 @@ function RunPageContent() {
                 ...(token ? { 'Authorization': `Bearer ${token}` } : {})
             };
 
+            const usedPlaceholderName = !data.name || data.name.trim() === '';
+            const untitledName = t('testCase.untitled');
+
             const payload: TestData = {
                 ...data,
-                name: (data.name && data.name.trim() !== '') ? data.name : 'Untitled',
+                name: !usedPlaceholderName ? data.name : untitledName,
             };
             if (!payload.url || payload.url.trim() === '') {
                 payload.url = 'about:blank';
@@ -526,12 +534,15 @@ function RunPageContent() {
 
             const newTestCase = await response.json();
             setCurrentTestCaseId(newTestCase.id);
+            refreshFilesRef.current = newTestCase.id;
             window.history.replaceState(null, "", `?testCaseId=${newTestCase.id}&projectId=${effectiveProjectId}`);
             setOriginalName(payload.name || null);
-            const payloadHasBrowserConfig = payload.browserConfig && Object.keys(payload.browserConfig).length > 0;
-            setOriginalMode((payloadHasSteps || payloadHasBrowserConfig) ? 'builder' : 'simple');
+            setOriginalDisplayId(displayId || null);
 
-            await refreshFiles();
+            if (usedPlaceholderName) {
+                setInitialData({ ...data, name: untitledName });
+            }
+
             return newTestCase.id as string;
         } catch (error) {
             console.error('Failed to create test case for upload', error);
@@ -601,12 +612,12 @@ function RunPageContent() {
                             isLoading={isLoading || (!!activeRunId && activeRunId === currentRunId)}
                             initialData={initialData}
                             showNameInput={true}
-                            readOnly={!!activeRunId || testCaseStatus === 'RUNNING' || testCaseStatus === 'QUEUED'}
+                            readOnly={['RUNNING', 'QUEUED'].includes(result.status) || !!activeRunId || testCaseStatus === 'RUNNING' || testCaseStatus === 'QUEUED'}
                             onExport={initialData ? handleExport : undefined}
                             onImport={() => fileInputRef.current?.click()}
-                            testCaseId={testCaseId || currentTestCaseId || undefined}
+                            testCaseId={testCaseId || currentTestCaseId || refreshFilesRef.current || undefined}
                             files={testCaseFiles}
-                            onFilesChange={refreshFiles}
+                            onFilesChange={handleFilesChange}
                             onEnsureTestCase={ensureTestCaseFromData}
                             onSaveDraft={handleSaveDraft}
                             onDiscard={handleDiscard}
@@ -621,7 +632,7 @@ function RunPageContent() {
                         result={result}
                         meta={{
                             runId: currentRunId,
-                            testCaseId: testCaseId || currentTestCaseId,
+                            testCaseId: testCaseId || currentTestCaseId || refreshFilesRef.current,
                             projectId: projectId || projectIdFromTestCase,
                             projectName,
                             testCaseName: initialData?.name || null,

@@ -319,8 +319,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
 
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                     <div className="hidden md:grid grid-cols-12 gap-4 p-4 border-b border-gray-200 bg-gray-50 text-sm font-medium text-gray-500">
-                        <div className="col-span-1">{t('project.table.id')}</div>
-                        <div className="col-span-4">{t('project.table.name')}</div>
+                        <div className="col-span-5">{t('project.table.name')}</div>
                         <div className="col-span-2">{t('project.table.latestStatus')}</div>
                         <div className="col-span-2">{t('project.table.updated')}</div>
                         <div className="col-span-3 text-right">{t('project.table.actions')}</div>
@@ -363,16 +362,16 @@ export default function ProjectPage({ params }: ProjectPageProps) {
 
                                 return (
                                 <div key={testCase.id} className="flex flex-col md:grid md:grid-cols-12 gap-4 p-4 hover:bg-gray-50 transition-colors group">
-                                    <div className="md:col-span-1">
-                                        <span className="text-sm text-gray-500 font-mono">{testCase.displayId || '-'}</span>
-                                    </div>
-                                    <div className="md:col-span-4">
-                                        <div className="font-medium text-gray-900">{testCase.name}</div>
-                                        <div className="text-xs text-gray-500 mt-1">
-                                            {(testCase.steps && testCase.steps.length > 0) || (testCase.browserConfig && testCase.browserConfig.length > 0)
-                                                ? t('project.testCase.type.multi')
-                                                : t('project.testCase.type.single')}
-                                        </div>
+                                    <div className="md:col-span-5">
+                                        <Link
+                                            href={`/run?testCaseId=${testCase.id}&projectId=${id}`}
+                                            className="font-medium text-gray-900 hover:text-primary transition-colors"
+                                        >
+                                            {testCase.name}
+                                        </Link>
+                                        {testCase.displayId && (
+                                            <div className="text-xs text-gray-500 mt-1 font-mono">{testCase.displayId}</div>
+                                        )}
                                     </div>
                                     <div className="flex items-center gap-4 md:contents">
                                         <div className="md:col-span-2 flex items-center">
@@ -388,16 +387,6 @@ export default function ProjectPage({ params }: ProjectPageProps) {
                                             {formatDateTimeCompact(testCase.updatedAt)}
                                         </div>
                                         <div className="md:col-span-3 flex justify-end gap-2">
-                                            <button
-                                                onClick={() => handleCloneTestCase(testCase.id)}
-                                                className="p-2 text-gray-500 hover:text-primary hover:bg-primary/10 rounded-md transition-colors inline-flex items-center justify-center"
-                                                title={t('project.tooltip.clone')}
-                                                aria-label={t('project.tooltip.clone')}
-                                            >
-                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                                </svg>
-                                            </button>
                                             {(!testCase.testRuns[0] || !['RUNNING', 'QUEUED'].includes(testCase.testRuns[0].status)) && (
                                                 <Link
                                                     href={`/run?testCaseId=${testCase.id}&name=${encodeURIComponent(testCase.name)}`}
@@ -434,6 +423,16 @@ export default function ProjectPage({ params }: ProjectPageProps) {
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                 </svg>
                                             </Link>
+                                            <button
+                                                onClick={() => handleCloneTestCase(testCase.id)}
+                                                className="p-2 text-gray-500 hover:text-primary hover:bg-primary/10 rounded-md transition-colors inline-flex items-center justify-center"
+                                                title={t('project.tooltip.clone')}
+                                                aria-label={t('project.tooltip.clone')}
+                                            >
+                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                                </svg>
+                                            </button>
                                             <button
                                                 onClick={() => setDeleteModal({ isOpen: true, testCaseId: testCase.id, testCaseName: testCase.name })}
                                                 disabled={testCase.testRuns[0] && ['RUNNING', 'QUEUED'].includes(testCase.testRuns[0].status)}

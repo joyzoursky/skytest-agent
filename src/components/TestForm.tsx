@@ -27,7 +27,7 @@ interface TestFormProps {
     onImport?: () => void;
     testCaseId?: string;
     files?: TestCaseFile[];
-    onFilesChange?: () => void;
+    onFilesChange?: (testCaseId?: string, uploadedFiles?: TestCaseFile[]) => void | Promise<void>;
     onEnsureTestCase?: (data: TestData) => Promise<string>;
     onSaveDraft?: (data: TestData) => Promise<void>;
     onDiscard?: () => void;
@@ -152,6 +152,7 @@ export default function TestForm({ onSubmit, isLoading, initialData, showNameInp
             setSimpleUsername('standard_user');
             setSimplePassword('secret_sauce');
             setPrompt(t('sample.simple.instructions', placeholderVars));
+            onDisplayIdChange?.('TC-SAMPLE-001');
         } else {
             setName(t('sample.multi.name'));
             setBrowsers([
@@ -166,6 +167,7 @@ export default function TestForm({ onSubmit, isLoading, initialData, showNameInp
                 { id: "5", target: "browser_a", action: t('sample.multi.step5') },
                 { id: "6", target: "browser_b", action: t('sample.multi.step6') }
             ]);
+            onDisplayIdChange?.('TC-SAMPLE-002');
         }
     };
 
@@ -341,13 +343,7 @@ export default function TestForm({ onSubmit, isLoading, initialData, showNameInp
                         testCaseId={testCaseId}
                         files={files}
                         onFilesChange={onFilesChange}
-                        onEnsureTestCase={onEnsureTestCase ? async () => {
-                            const data = buildCurrentData();
-                            if (!data.name || data.name.trim() === '') {
-                                data.name = 'Untitled';
-                            }
-                            return onEnsureTestCase(data);
-                        } : undefined}
+                        onEnsureTestCase={onEnsureTestCase ? async () => onEnsureTestCase(buildCurrentData()) : undefined}
                     />
                 )}
             </div>
@@ -360,7 +356,7 @@ export default function TestForm({ onSubmit, isLoading, initialData, showNameInp
                                 <button
                                     type="button"
                                     onClick={onDiscard}
-                                    className="flex-1 px-4 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                                    className="flex-1 px-4 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
                                 >
                                     {t('testForm.discard')}
                                 </button>
@@ -373,7 +369,7 @@ export default function TestForm({ onSubmit, isLoading, initialData, showNameInp
                                         onSaveDraft(data);
                                     }}
                                     disabled={isSaving || !name.trim()}
-                                    className="flex-1 px-4 py-2.5 bg-white text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+                                    className="flex-1 px-4 py-2.5 bg-primary/20 text-primary rounded-lg hover:bg-primary/30 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
                                 >
                                     {isSaving ? (
                                         <>

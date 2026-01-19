@@ -2,8 +2,14 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyAuth } from '@/lib/auth';
 import { createLogger } from '@/lib/logger';
+import { getFilePath, getUploadPath } from '@/lib/file-security';
+import fs from 'fs/promises';
+import path from 'path';
+import crypto from 'crypto';
 
 const logger = createLogger('api:test-cases:clone');
+
+export const dynamic = 'force-dynamic';
 
 type AuthPayload = NonNullable<Awaited<ReturnType<typeof verifyAuth>>>;
 
@@ -32,7 +38,12 @@ export async function POST(
         const { id } = await params;
         const existingTestCase = await prisma.testCase.findUnique({
             where: { id },
-            include: { project: { select: { userId: true } } }
+            include: {
+                project: { select: { userId: true } },
+                files: {
+                    orderBy: { createdAt: 'desc' }
+                }
+            }
         });
 
         if (!existingTestCase) {
@@ -48,12 +59,6 @@ export async function POST(
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
-        // Create cloned test case with:
-        // - New CUID id (auto-generated)
-        // - Empty displayId (user can set their own)
-        // - Name: "{original name} (Copy)"
-        // - Status: DRAFT
-        // - Copy all other fields (url, prompt, steps, browserConfig, credentials)
         const clonedTestCase = await prisma.testCase.create({
             data: {
                 name: `${existingTestCase.name} (Copy)`,
@@ -64,10 +69,41 @@ export async function POST(
                 username: existingTestCase.username,
                 password: existingTestCase.password,
                 projectId: existingTestCase.projectId,
-                displayId: null, // Empty displayId for cloned test case
+                displayId: existingTestCase.displayId,
                 status: 'DRAFT',
             },
         });
+
+        // Clone attached files (DB records + physical files)
+        if (existingTestCase.files && existingTestCase.files.length > 0) {
+            const newUploadDir = getUploadPath(clonedTestCase.id);
+            await fs.mkdir(newUploadDir, { recursive: true });
+
+            for (const file of existingTestCase.files) {
+                const ext = path.extname(file.storedName) || path.extname(file.filename) || '';
+                const newStoredName = `${crypto.randomUUID()}${ext}`;
+
+                const src = getFilePath(existingTestCase.id, file.storedName);
+                const dest = getFilePath(clonedTestCase.id, newStoredName);
+
+                try {
+                    await fs.copyFile(src, dest);
+                } catch (e) {
+                    logger.warn('clone: failed to copy file on disk, skipping', { testCaseId: existingTestCase.id, fileId: file.id, src, dest, error: e });
+                    continue;
+                }
+
+                await prisma.testCaseFile.create({
+                    data: {
+                        testCaseId: clonedTestCase.id,
+                        filename: file.filename,
+                        storedName: newStoredName,
+                        mimeType: file.mimeType,
+                        size: file.size,
+                    }
+                });
+            }
+        }
 
         return NextResponse.json(clonedTestCase);
     } catch (error) {

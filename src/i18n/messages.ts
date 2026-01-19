@@ -32,6 +32,7 @@ export const MESSAGES: Record<Locale, Messages> = {
     'common.copy': 'Copy',
     'common.rows': 'Rows:',
     'common.noRecords': 'No records',
+    'testCase.untitled': 'Untitled',
 
     // Header
     'header.accountSettings': 'Account Settings',
@@ -203,7 +204,7 @@ export const MESSAGES: Record<Locale, Messages> = {
     'testForm.testCaseId.placeholder': 'e.g. TC-001',
     'testForm.saveDraft': 'Save Draft',
     'testForm.saving': 'Saving...',
-    'testForm.discard': 'Discard',
+    'testForm.discard': 'Discard Changes',
     'testForm.running': 'Running Test...',
     'testForm.run': 'Run Test',
 
@@ -334,6 +335,7 @@ Verify that "Sauce Labs Backpack" is in the cart.`,
     'common.copy': '複製',
     'common.rows': '每頁筆數：',
     'common.noRecords': '沒有紀錄',
+    'testCase.untitled': '未命名',
 
     // Header
     'header.accountSettings': '帳戶設定',
@@ -505,7 +507,7 @@ Verify that "Sauce Labs Backpack" is in the cart.`,
     'testForm.testCaseId.placeholder': '例如：TC-001',
     'testForm.saveDraft': '儲存草稿',
     'testForm.saving': '儲存中…',
-    'testForm.discard': '捨棄',
+    'testForm.discard': '捨棄變更',
     'testForm.running': '測試執行中…',
     'testForm.run': '執行測試',
 
@@ -636,6 +638,7 @@ Verify that "Sauce Labs Backpack" is in the cart.`,
     'common.copy': '复制',
     'common.rows': '每页行数：',
     'common.noRecords': '没有记录',
+    'testCase.untitled': '未命名',
 
     // Header
     'header.accountSettings': '账号设置',
@@ -807,7 +810,7 @@ Verify that "Sauce Labs Backpack" is in the cart.`,
     'testForm.testCaseId.placeholder': '例如：TC-001',
     'testForm.saveDraft': '保存草稿',
     'testForm.saving': '保存中…',
-    'testForm.discard': '放弃',
+    'testForm.discard': '放弃更改',
     'testForm.running': '测试运行中…',
     'testForm.run': '运行测试',
 
