@@ -54,6 +54,8 @@ export default function ProjectPage({ params }: ProjectPageProps) {
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(20);
+    const [searchInput, setSearchInput] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
 
     const refreshAbortRef = useRef<AbortController | null>(null);
     const eventSourceRef = useRef<EventSource | null>(null);
@@ -290,7 +292,26 @@ export default function ProjectPage({ params }: ProjectPageProps) {
         }
     };
 
-    const sortedTestCases = [...testCases].sort((a, b) => {
+    const handleSearch = () => {
+        setSearchQuery(searchInput.trim());
+        setCurrentPage(1);
+    };
+
+    const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            handleSearch();
+        }
+    };
+
+    const filteredTestCases = testCases.filter((tc) => {
+        if (!searchQuery) return true;
+        const query = searchQuery.toLowerCase();
+        const matchesId = tc.displayId?.toLowerCase().includes(query);
+        const matchesName = tc.name.toLowerCase().includes(query);
+        return matchesId || matchesName;
+    });
+
+    const sortedTestCases = [...filteredTestCases].sort((a, b) => {
         let comparison = 0;
         
         switch (sortColumn) {
@@ -377,7 +398,26 @@ export default function ProjectPage({ params }: ProjectPageProps) {
 
                 <div className="flex items-center justify-between mb-8">
                     <h1 className="text-3xl font-bold text-gray-900">{t('project.testCases.title')}</h1>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-4">
+                        <div className="relative">
+                            <input
+                                type="text"
+                                value={searchInput}
+                                onChange={(e) => setSearchInput(e.target.value)}
+                                onKeyDown={handleSearchKeyDown}
+                                placeholder={t('project.search.placeholder')}
+                                className="pl-3 pr-10 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent w-64"
+                            />
+                            <button
+                                onClick={handleSearch}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                                aria-label={t('project.search.button')}
+                            >
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </button>
+                        </div>
                         <Link
                             href={`/run?projectId=${id}`}
                             className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors flex items-center gap-2"
