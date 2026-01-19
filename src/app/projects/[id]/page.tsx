@@ -405,7 +405,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
     }
 
     return (
-        <main className="min-h-screen bg-gray-50 p-8">
+        <main className="min-h-screen bg-gray-50">
             <Modal
                 isOpen={deleteModal.isOpen}
                 onClose={() => setDeleteModal({ isOpen: false, testCaseId: "", testCaseName: "" })}
@@ -419,7 +419,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
                 </p>
             </Modal>
 
-            <div className="max-w-7xl mx-auto">
+            <div className="max-w-7xl mx-auto px-8 py-8">
                 <Breadcrumbs items={[{ label: project?.name || t('common.project') }]} />
 
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">

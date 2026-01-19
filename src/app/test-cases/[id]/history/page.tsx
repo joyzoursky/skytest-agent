@@ -230,7 +230,7 @@ export default function HistoryPage({ params }: { params: Promise<{ id: string }
     const isRunningOrQueued = ['RUNNING', 'QUEUED'].includes(deleteModal.status || '');
 
     return (
-        <main className="min-h-screen bg-gray-50 p-8">
+        <main className="min-h-screen bg-gray-50">
             <Modal
                 isOpen={deleteModal.isOpen}
                 onClose={() => setDeleteModal({ isOpen: false, runId: "", status: "" })}
@@ -251,7 +251,7 @@ export default function HistoryPage({ params }: { params: Promise<{ id: string }
                 </div>
             </Modal>
 
-            <div className="max-w-7xl mx-auto">
+            <div className="max-w-7xl mx-auto px-8 py-8">
                 <Breadcrumbs items={[
                     { label: projectName, href: projectId ? `/projects/${projectId}` : undefined },
                     { label: testCaseName }
