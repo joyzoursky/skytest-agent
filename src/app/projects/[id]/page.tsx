@@ -319,7 +319,8 @@ export default function ProjectPage({ params }: ProjectPageProps) {
 
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                     <div className="hidden md:grid grid-cols-12 gap-4 p-4 border-b border-gray-200 bg-gray-50 text-sm font-medium text-gray-500">
-                        <div className="col-span-5">{t('project.table.name')}</div>
+                        <div className="col-span-2">{t('project.table.id')}</div>
+                        <div className="col-span-3">{t('project.table.name')}</div>
                         <div className="col-span-2">{t('project.table.latestStatus')}</div>
                         <div className="col-span-2">{t('project.table.updated')}</div>
                         <div className="col-span-3 text-right">{t('project.table.actions')}</div>
@@ -351,16 +352,20 @@ export default function ProjectPage({ params }: ProjectPageProps) {
 
                                 return (
                                     <div key={testCase.id} className="flex flex-col md:grid md:grid-cols-12 gap-4 p-4 hover:bg-gray-50 transition-colors group">
-                                        <div className="md:col-span-5">
+                                        <div className="md:col-span-2 flex items-center">
+                                            {testCase.displayId ? (
+                                                <span className="text-xs text-gray-500 font-mono">{testCase.displayId}</span>
+                                            ) : (
+                                                <span className="text-gray-400 text-sm">-</span>
+                                            )}
+                                        </div>
+                                        <div className="md:col-span-3 flex items-center">
                                             <Link
                                                 href={`/run?testCaseId=${testCase.id}&projectId=${id}`}
                                                 className="font-medium text-gray-900 hover:text-primary transition-colors"
                                             >
                                                 {testCase.name}
                                             </Link>
-                                            {testCase.displayId && (
-                                                <div className="text-xs text-gray-500 mt-1 font-mono">{testCase.displayId}</div>
-                                            )}
                                         </div>
                                         <div className="flex items-center gap-4 md:contents">
                                             <div className="md:col-span-2 flex items-center">
