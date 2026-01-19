@@ -17,6 +17,8 @@ interface TestRun {
 
 interface TestCase {
     id: string;
+    displayId?: string;
+    status?: string;
     name: string;
     url: string;
     prompt: string;
@@ -257,6 +259,23 @@ export default function ProjectPage({ params }: ProjectPageProps) {
         }
     };
 
+    const handleCloneTestCase = async (testCaseId: string) => {
+        try {
+            const token = await getAccessToken();
+            const response = await fetch(`/api/test-cases/${testCaseId}/clone`, {
+                method: "POST",
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+            });
+
+            if (response.ok) {
+                const clonedTestCase = await response.json();
+                router.push(`/run?testCaseId=${clonedTestCase.id}&projectId=${id}`);
+            }
+        } catch (error) {
+            console.error("Failed to clone test case", error);
+        }
+    };
+
     if (isAuthLoading || isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
@@ -300,10 +319,11 @@ export default function ProjectPage({ params }: ProjectPageProps) {
 
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                     <div className="hidden md:grid grid-cols-12 gap-4 p-4 border-b border-gray-200 bg-gray-50 text-sm font-medium text-gray-500">
-                        <div className="col-span-5">{t('project.table.name')}</div>
-                        <div className="col-span-3">{t('project.table.lastRun')}</div>
+                        <div className="col-span-1">{t('project.table.id')}</div>
+                        <div className="col-span-4">{t('project.table.name')}</div>
+                        <div className="col-span-2">{t('project.table.latestStatus')}</div>
                         <div className="col-span-2">{t('project.table.updated')}</div>
-                        <div className="col-span-2 text-right">{t('project.table.actions')}</div>
+                        <div className="col-span-3 text-right">{t('project.table.actions')}</div>
                     </div>
 
                     {testCases.length === 0 ? (
@@ -327,9 +347,26 @@ export default function ProjectPage({ params }: ProjectPageProps) {
                         </div>
                     ) : (
                         <div className="divide-y divide-gray-100">
-                            {testCases.map((testCase) => (
+                            {testCases.map((testCase) => {
+                                const getStatusColor = (status: string) => {
+                                    switch (status) {
+                                        case 'PASS': return 'bg-green-100 text-green-800';
+                                        case 'FAIL': return 'bg-red-100 text-red-800';
+                                        case 'CANCELLED': return 'bg-gray-100 text-gray-800';
+                                        case 'RUNNING': return 'bg-blue-100 text-blue-800';
+                                        case 'QUEUED': return 'bg-purple-100 text-purple-800';
+                                        case 'DRAFT': return 'bg-yellow-100 text-yellow-800';
+                                        default: return 'bg-gray-100 text-gray-800';
+                                    }
+                                };
+                                const currentStatus = testCase.status || (testCase.testRuns[0]?.status);
+
+                                return (
                                 <div key={testCase.id} className="flex flex-col md:grid md:grid-cols-12 gap-4 p-4 hover:bg-gray-50 transition-colors group">
-                                    <div className="md:col-span-5">
+                                    <div className="md:col-span-1">
+                                        <span className="text-sm text-gray-500 font-mono">{testCase.displayId || '-'}</span>
+                                    </div>
+                                    <div className="md:col-span-4">
                                         <div className="font-medium text-gray-900">{testCase.name}</div>
                                         <div className="text-xs text-gray-500 mt-1">
                                             {(testCase.steps && testCase.steps.length > 0) || (testCase.browserConfig && testCase.browserConfig.length > 0)
@@ -338,15 +375,10 @@ export default function ProjectPage({ params }: ProjectPageProps) {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-4 md:contents">
-                                        <div className="md:col-span-3 flex items-center">
-                                            {testCase.testRuns[0] ? (
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${testCase.testRuns[0].status === 'PASS' ? 'bg-green-100 text-green-800' :
-                                                    testCase.testRuns[0].status === 'FAIL' ? 'bg-red-100 text-red-800' :
-                                                        testCase.testRuns[0].status === 'CANCELLED' ? 'bg-gray-100 text-gray-800' :
-                                                            testCase.testRuns[0].status === 'RUNNING' ? 'bg-blue-100 text-blue-800' :
-                                                                'bg-yellow-100 text-yellow-800'
-                                                    }`}>
-                                                    {testCase.testRuns[0].status}
+                                        <div className="md:col-span-2 flex items-center">
+                                            {currentStatus ? (
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(currentStatus)}`}>
+                                                    {currentStatus}
                                                 </span>
                                             ) : (
                                                 <span className="text-gray-400 text-sm">-</span>
@@ -355,7 +387,17 @@ export default function ProjectPage({ params }: ProjectPageProps) {
                                         <div className="md:col-span-2 text-sm text-gray-500 flex items-center">
                                             {formatDateTimeCompact(testCase.updatedAt)}
                                         </div>
-                                        <div className="md:col-span-2 flex justify-end gap-2">
+                                        <div className="md:col-span-3 flex justify-end gap-2">
+                                            <button
+                                                onClick={() => handleCloneTestCase(testCase.id)}
+                                                className="p-2 text-gray-500 hover:text-primary hover:bg-primary/10 rounded-md transition-colors inline-flex items-center justify-center"
+                                                title={t('project.tooltip.clone')}
+                                                aria-label={t('project.tooltip.clone')}
+                                            >
+                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                                </svg>
+                                            </button>
                                             {(!testCase.testRuns[0] || !['RUNNING', 'QUEUED'].includes(testCase.testRuns[0].status)) && (
                                                 <Link
                                                     href={`/run?testCaseId=${testCase.id}&name=${encodeURIComponent(testCase.name)}`}
@@ -411,7 +453,8 @@ export default function ProjectPage({ params }: ProjectPageProps) {
                                         </div>
                                     </div>
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </div>

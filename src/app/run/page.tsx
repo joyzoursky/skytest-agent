@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense, useRef } from "react";
+import { useState, useEffect, Suspense, useRef, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "../auth-provider";
@@ -10,6 +10,7 @@ import Breadcrumbs from "@/components/Breadcrumbs";
 import { TestStep, BrowserConfig, TestEvent, TestCaseFile } from "@/types";
 import { exportToMarkdown, parseMarkdown } from "@/utils/testCaseMarkdown";
 import { useI18n } from "@/i18n";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 
 interface TestData {
     url: string;
@@ -55,6 +56,12 @@ function RunPageContent() {
     const [activeRunId, setActiveRunId] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [testCaseFiles, setTestCaseFiles] = useState<TestCaseFile[]>([]);
+    const [isDirty, setIsDirty] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [displayId, setDisplayId] = useState<string>('');
+    const [testCaseStatus, setTestCaseStatus] = useState<string | null>(null);
+
+    useUnsavedChanges(isDirty, t('run.unsavedChangesWarning'));
 
     const handleExport = () => {
         if (!initialData) return;
@@ -153,6 +160,8 @@ function RunPageContent() {
                 setOriginalMode(mode);
                 setProjectIdFromTestCase(data.projectId);
                 fetchProjectName(data.projectId);
+                setDisplayId(data.displayId || '');
+                setTestCaseStatus(data.status || null);
 
                 if (data.files) {
                     setTestCaseFiles(data.files);
@@ -397,6 +406,84 @@ function RunPageContent() {
         }
     };
 
+    const handleSaveDraft = useCallback(async (data: TestData) => {
+        if (!data.name?.trim()) {
+            alert(t('run.error.nameRequired'));
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            const token = await getAccessToken();
+            const headers: HeadersInit = {
+                "Content-Type": "application/json",
+                ...(token ? { "Authorization": `Bearer ${token}` } : {})
+            };
+
+            const effectiveTestCaseId = testCaseId || currentTestCaseId;
+
+            if (effectiveTestCaseId) {
+                const response = await fetch(`/api/test-cases/${effectiveTestCaseId}`, {
+                    method: "PUT",
+                    headers,
+                    body: JSON.stringify({ ...data, displayId, saveDraft: true }),
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to save draft');
+                }
+
+                const updatedTestCase = await response.json();
+                setTestCaseStatus(updatedTestCase.status);
+            } else {
+                const effectiveProjectId = projectId || projectIdFromTestCase;
+                if (!effectiveProjectId) {
+                    alert(t('run.error.noProjectSelected'));
+                    return;
+                }
+
+                const response = await fetch(`/api/projects/${effectiveProjectId}/test-cases`, {
+                    method: "POST",
+                    headers,
+                    body: JSON.stringify({ ...data, displayId }),
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to create test case');
+                }
+
+                const newTestCase = await response.json();
+                setCurrentTestCaseId(newTestCase.id);
+                setTestCaseStatus(newTestCase.status);
+                window.history.replaceState(null, "", `?testCaseId=${newTestCase.id}&projectId=${effectiveProjectId}`);
+                setOriginalName(data.name || null);
+                const hasSteps = data.steps?.length || data.browserConfig;
+                setOriginalMode(hasSteps ? 'builder' : 'simple');
+            }
+
+            setIsDirty(false);
+        } catch (error) {
+            console.error('Failed to save draft', error);
+            alert(t('run.error.failedToSave'));
+        } finally {
+            setIsSaving(false);
+        }
+    }, [testCaseId, currentTestCaseId, projectId, projectIdFromTestCase, displayId, getAccessToken, t]);
+
+    const handleDiscard = useCallback(() => {
+        const effectiveProjectId = projectId || projectIdFromTestCase;
+        if (effectiveProjectId) {
+            router.push(`/projects/${effectiveProjectId}`);
+        } else {
+            router.push('/projects');
+        }
+    }, [projectId, projectIdFromTestCase, router]);
+
+    const handleDisplayIdChange = useCallback((newDisplayId: string) => {
+        setDisplayId(newDisplayId);
+        setIsDirty(true);
+    }, []);
+
     const ensureTestCaseFromData = async (data: TestData): Promise<string> => {
         if (testCaseId) return testCaseId;
         if (currentTestCaseId) return currentTestCaseId;
@@ -514,13 +601,18 @@ function RunPageContent() {
                             isLoading={isLoading || (!!activeRunId && activeRunId === currentRunId)}
                             initialData={initialData}
                             showNameInput={true}
-                            readOnly={!!activeRunId}
+                            readOnly={!!activeRunId || testCaseStatus === 'RUNNING' || testCaseStatus === 'QUEUED'}
                             onExport={initialData ? handleExport : undefined}
                             onImport={() => fileInputRef.current?.click()}
                             testCaseId={testCaseId || currentTestCaseId || undefined}
                             files={testCaseFiles}
                             onFilesChange={refreshFiles}
                             onEnsureTestCase={ensureTestCaseFromData}
+                            onSaveDraft={handleSaveDraft}
+                            onDiscard={handleDiscard}
+                            isSaving={isSaving}
+                            displayId={displayId}
+                            onDisplayIdChange={handleDisplayIdChange}
                         />
                     )}
                 </div>
