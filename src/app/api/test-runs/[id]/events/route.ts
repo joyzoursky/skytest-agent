@@ -89,17 +89,27 @@ export async function GET(
             safeEnqueue({ type: 'status', status: currentStatus });
 
             let lastIndex = 0;
+            let lastSentStatus = currentStatus;
+
             pollInterval = setInterval(async () => {
                 if (streamClosed) return;
                 try {
                     const status = queue.getStatus(id);
+
+                    if (status && status !== lastSentStatus) {
+                        safeEnqueue({ type: 'status', status });
+                        lastSentStatus = status;
+                    }
 
                     if (!status) {
                         const freshRun = await prisma.testRun.findUnique({
                             where: { id },
                             select: { status: true, result: true }
                         });
-                        if (freshRun && ['PASS', 'FAIL', 'CANCELLED'].includes(freshRun.status)) {
+
+                        if (!freshRun) return;
+
+                        if (['PASS', 'FAIL', 'CANCELLED'].includes(freshRun.status)) {
                             if (pollInterval) {
                                 clearInterval(pollInterval);
                             }
@@ -124,28 +134,11 @@ export async function GET(
                             return;
                         }
 
-                        if (freshRun && ['RUNNING', 'QUEUED'].includes(freshRun.status)) {
-                            logger.warn('Detected orphaned run; marking as failed', { runId: id });
-
-                            await prisma.testRun.update({
-                                where: { id },
-                                data: {
-                                    status: 'FAIL',
-                                    error: 'Test execution interrupted (Server restarted or process lost)',
-                                    completedAt: new Date()
-                                }
-                            });
-
-                            if (pollInterval) {
-                                clearInterval(pollInterval);
-                            }
-                            safeEnqueue({
-                                type: 'status',
-                                status: 'FAIL',
-                                error: 'Test execution interrupted (Server restarted or process lost)'
-                            });
-                            closeStream();
-                            return;
+                        // Orphaned run: server restarted and in-memory queue lost.
+                        // Keep reporting status so UI still shows Stop/Cancel buttons.
+                        if (['RUNNING', 'QUEUED'].includes(freshRun.status) && freshRun.status !== lastSentStatus) {
+                            safeEnqueue({ type: 'status', status: freshRun.status });
+                            lastSentStatus = freshRun.status;
                         }
 
                         return;

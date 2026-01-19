@@ -335,6 +335,7 @@ function RunPageContent() {
             const resp = await fetch(`/api/test-runs/${currentRunId}/cancel`, { method: 'POST', headers });
             if (!resp.ok) throw new Error(t('run.error.failedToStop'));
             setResult(prev => ({ ...prev, status: 'CANCELLED', error: t('run.error.testStopped') }));
+            setTestCaseStatus('CANCELLED');
             setActiveRunId(null);
             setCurrentRunId(null);
         } catch (error) {
