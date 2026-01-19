@@ -86,7 +86,6 @@ export default function TestForm({ onSubmit, isLoading, initialData, showNameInp
     useEffect(() => {
         if (!initialData) return;
 
-        // Defer state updates to avoid cascading renders warnings in React strict lint rules.
         queueMicrotask(() => {
             if (initialData.name) setName(initialData.name);
             if (initialData.prompt) setPrompt(initialData.prompt);

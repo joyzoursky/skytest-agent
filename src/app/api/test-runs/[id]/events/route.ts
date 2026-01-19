@@ -114,7 +114,6 @@ export async function GET(
                                 clearInterval(pollInterval);
                             }
 
-                            // Send any remaining events from the database that weren't streamed yet
                             if (freshRun.result) {
                                 try {
                                     const storedEvents = JSON.parse(freshRun.result);
@@ -134,8 +133,6 @@ export async function GET(
                             return;
                         }
 
-                        // Orphaned run: server restarted and in-memory queue lost.
-                        // Keep reporting status so UI still shows Stop/Cancel buttons.
                         if (['RUNNING', 'QUEUED'].includes(freshRun.status) && freshRun.status !== lastSentStatus) {
                             safeEnqueue({ type: 'status', status: freshRun.status });
                             lastSentStatus = freshRun.status;

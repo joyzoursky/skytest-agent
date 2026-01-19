@@ -67,8 +67,6 @@ function FileUploadZoneInner({ testCaseId, onUploadComplete, disabled, ensureTes
     };
 
     const handleFiles = useCallback(async (files: FileList | null) => {
-        // IMPORTANT: copy files immediately. For "new test case" uploads we await ensureTestCase()
-        // before uploading, and clearing the input value can otherwise clear the FileList.
         const fileArray = files ? Array.from(files) : [];
         if (fileArray.length === 0) return;
 

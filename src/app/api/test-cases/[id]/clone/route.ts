@@ -74,9 +74,6 @@ export async function POST(
             },
         });
 
-        // Rewrite any hard-coded upload paths inside prompt/steps so cloned tests can run
-        // without manually editing Playwright code.
-        // Typical pattern is: uploads/<testCaseId>/<storedName>
         const uploadRootRelative = config.files.uploadDir.replace(/^\.\//, '').replace(/\/$/, '');
         const rewriteUploadPaths = (value: string | null | undefined) => {
             if (!value) return value;
@@ -98,9 +95,6 @@ export async function POST(
             });
         }
 
-        // Clone attached files (DB records + physical files).
-        // Preserve storedName to keep existing Playwright code that references the storedName working.
-        // Use hardlinks when possible (same disk) to avoid duplicating storage; fall back to copy.
         if (existingTestCase.files && existingTestCase.files.length > 0) {
             const newUploadDir = getUploadPath(clonedTestCase.id);
             await fs.mkdir(newUploadDir, { recursive: true });

@@ -1,7 +1,5 @@
 import type { TestStatus } from '@/types';
 
-// Central place for status badge colors across the app.
-// Keep these as string literals so Tailwind can pick them up.
 export const STATUS_BADGE_CLASSES: Record<TestStatus, string> = {
     IDLE: 'bg-gray-100 text-gray-700 border-gray-200',
     DRAFT: 'bg-yellow-100 text-yellow-800 border-yellow-200',

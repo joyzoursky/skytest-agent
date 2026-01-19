@@ -602,7 +602,7 @@ Verify that "Sauce Labs Backpack" is in the cart.`,
     'timeline.screenshot': '截圖',
     'timeline.clickToEnlarge': '點擊以放大',
 
-    // Sample data (Traditional Chinese - Taiwan terminology)
+    // Sample data (Traditional Chinese)
     'sample.simple.name': '簡易登入測試',
     'sample.simple.instructions': `使用帳號 {username} 與密碼 {password} 登入。
 將「Sauce Labs Backpack」加入購物車。
@@ -905,7 +905,7 @@ Verify that "Sauce Labs Backpack" is in the cart.`,
     'timeline.screenshot': '截图',
     'timeline.clickToEnlarge': '点击查看大图',
 
-    // Sample data (Simplified Chinese - Mainland China terminology)
+    // Sample data (Simplified Chinese)
     'sample.simple.name': '简易登录测试',
     'sample.simple.instructions': `使用用户名 {username} 和密码 {password} 登录。
 将"Sauce Labs Backpack"添加到购物车。
