@@ -49,6 +49,8 @@ export default function ProjectPage({ params }: ProjectPageProps) {
     const [testCases, setTestCases] = useState<TestCase[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; testCaseId: string; testCaseName: string }>({ isOpen: false, testCaseId: "", testCaseName: "" });
+    const [sortColumn, setSortColumn] = useState<'id' | 'name' | 'status' | 'updated'>('updated');
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
     const refreshAbortRef = useRef<AbortController | null>(null);
     const eventSourceRef = useRef<EventSource | null>(null);
@@ -276,6 +278,59 @@ export default function ProjectPage({ params }: ProjectPageProps) {
         }
     };
 
+    const handleSort = (column: 'id' | 'name' | 'status' | 'updated') => {
+        if (sortColumn === column) {
+            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortColumn(column);
+            setSortDirection('asc');
+        }
+    };
+
+    const sortedTestCases = [...testCases].sort((a, b) => {
+        let comparison = 0;
+        
+        switch (sortColumn) {
+            case 'id':
+                const idA = a.displayId || '';
+                const idB = b.displayId || '';
+                comparison = idA.localeCompare(idB);
+                break;
+            case 'name':
+                comparison = a.name.localeCompare(b.name);
+                break;
+            case 'status':
+                const statusA = a.status || a.testRuns[0]?.status || '';
+                const statusB = b.status || b.testRuns[0]?.status || '';
+                comparison = statusA.localeCompare(statusB);
+                break;
+            case 'updated':
+                comparison = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
+                break;
+        }
+        
+        return sortDirection === 'asc' ? comparison : -comparison;
+    });
+
+    const SortIcon = ({ column }: { column: 'id' | 'name' | 'status' | 'updated' }) => {
+        if (sortColumn !== column) {
+            return (
+                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                </svg>
+            );
+        }
+        return sortDirection === 'asc' ? (
+            <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+            </svg>
+        ) : (
+            <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+        );
+    };
+
     if (isAuthLoading || isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
@@ -319,10 +374,34 @@ export default function ProjectPage({ params }: ProjectPageProps) {
 
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                     <div className="hidden md:grid grid-cols-12 gap-4 p-4 border-b border-gray-200 bg-gray-50 text-sm font-medium text-gray-500">
-                        <div className="col-span-2">{t('project.table.id')}</div>
-                        <div className="col-span-3">{t('project.table.name')}</div>
-                        <div className="col-span-2">{t('project.table.latestStatus')}</div>
-                        <div className="col-span-2">{t('project.table.updated')}</div>
+                        <button
+                            onClick={() => handleSort('id')}
+                            className="col-span-2 flex items-center gap-1 hover:text-gray-700 transition-colors text-left"
+                        >
+                            {t('project.table.id')}
+                            <SortIcon column="id" />
+                        </button>
+                        <button
+                            onClick={() => handleSort('name')}
+                            className="col-span-3 flex items-center gap-1 hover:text-gray-700 transition-colors text-left"
+                        >
+                            {t('project.table.name')}
+                            <SortIcon column="name" />
+                        </button>
+                        <button
+                            onClick={() => handleSort('status')}
+                            className="col-span-2 flex items-center gap-1 hover:text-gray-700 transition-colors text-left"
+                        >
+                            {t('project.table.latestStatus')}
+                            <SortIcon column="status" />
+                        </button>
+                        <button
+                            onClick={() => handleSort('updated')}
+                            className="col-span-2 flex items-center gap-1 hover:text-gray-700 transition-colors text-left"
+                        >
+                            {t('project.table.updated')}
+                            <SortIcon column="updated" />
+                        </button>
                         <div className="col-span-3 text-right">{t('project.table.actions')}</div>
                     </div>
 
@@ -347,7 +426,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
                         </div>
                     ) : (
                         <div className="divide-y divide-gray-100">
-                            {testCases.map((testCase) => {
+                            {sortedTestCases.map((testCase) => {
                                 const currentStatus = testCase.status || (testCase.testRuns[0]?.status);
 
                                 return (
