@@ -450,7 +450,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
                             onClick={() => handleSort('status')}
                             className="col-span-3 flex items-center gap-1 hover:text-gray-700 transition-colors text-left"
                         >
-                            {t('project.table.latestStatus')}
+                            {t('project.table.status')}
                             <SortIcon column="status" />
                         </button>
                         <button
