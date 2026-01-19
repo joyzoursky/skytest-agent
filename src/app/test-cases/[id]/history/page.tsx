@@ -251,7 +251,7 @@ export default function HistoryPage({ params }: { params: Promise<{ id: string }
                 </div>
             </Modal>
 
-            <div className="max-w-5xl mx-auto">
+            <div className="max-w-7xl mx-auto">
                 <Breadcrumbs items={[
                     { label: projectName, href: projectId ? `/projects/${projectId}` : undefined },
                     { label: testCaseName }

@@ -393,7 +393,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
                 </p>
             </Modal>
 
-            <div className="max-w-5xl mx-auto">
+            <div className="max-w-7xl mx-auto">
                 <Breadcrumbs items={[{ label: project?.name || t('common.project') }]} />
 
                 <div className="flex items-center justify-between mb-8">
