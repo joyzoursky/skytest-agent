@@ -50,8 +50,6 @@ function RunPageContent() {
     const testCaseId = searchParams.get("testCaseId");
     const testCaseName = searchParams.get("name");
     const [initialData, setInitialData] = useState<TestData | undefined>(undefined);
-    const [originalName, setOriginalName] = useState<string | null>(null);
-    const [originalDisplayId, setOriginalDisplayId] = useState<string | null>(null);
 
     const [activeRunId, setActiveRunId] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -89,9 +87,6 @@ function RunPageContent() {
                 alert(t('testForm.importWarnings', { warnings: errors.join(', ') }));
             }
             setInitialData(data);
-            if (data.name) {
-                setOriginalName(null);
-            }
         };
         reader.readAsText(file);
         event.target.value = '';
@@ -159,8 +154,6 @@ function RunPageContent() {
                     browserConfig: data.browserConfig,
                 });
 
-                setOriginalName(data.name);
-                setOriginalDisplayId(data.displayId || null);
                 setProjectIdFromTestCase(data.projectId);
                 fetchProjectName(data.projectId);
                 setDisplayId(data.displayId || '');
@@ -350,17 +343,13 @@ function RunPageContent() {
         const effectiveTestCaseId = testCaseId || currentTestCaseId;
         const effectiveProjectId = projectId || projectIdFromTestCase;
 
-        const nameChanged = originalName && data.name && data.name !== originalName;
-        const displayIdChanged = originalDisplayId !== null && displayId !== (originalDisplayId || '');
-        const shouldCreateNew = nameChanged && displayIdChanged;
-
         const token = await getAccessToken();
         const headers: HeadersInit = {
             "Content-Type": "application/json",
             ...(token ? { "Authorization": `Bearer ${token}` } : {})
         };
 
-        if (effectiveTestCaseId && !shouldCreateNew) {
+        if (effectiveTestCaseId) {
             const response = await fetch(`/api/test-cases/${effectiveTestCaseId}`, {
                 method: "PUT",
                 headers,
@@ -388,12 +377,10 @@ function RunPageContent() {
             const newTestCase = await response.json();
             setCurrentTestCaseId(newTestCase.id);
             window.history.replaceState(null, "", `?testCaseId=${newTestCase.id}&projectId=${effectiveProjectId}`);
-            setOriginalName(data.name || null);
-            setOriginalDisplayId(displayId || null);
             setIsDirty(false);
             return newTestCase.id;
         }
-    }, [testCaseId, currentTestCaseId, projectId, projectIdFromTestCase, originalName, originalDisplayId, displayId, getAccessToken]);
+    }, [testCaseId, currentTestCaseId, projectId, projectIdFromTestCase, displayId, getAccessToken]);
 
     const handleRunTest = useCallback(async (data: TestData) => {
         setIsLoading(true);
@@ -537,8 +524,6 @@ function RunPageContent() {
             setCurrentTestCaseId(newTestCase.id);
             refreshFilesRef.current = newTestCase.id;
             window.history.replaceState(null, "", `?testCaseId=${newTestCase.id}&projectId=${effectiveProjectId}`);
-            setOriginalName(payload.name || null);
-            setOriginalDisplayId(displayId || null);
 
             if (usedPlaceholderName) {
                 setInitialData({ ...data, name: untitledName });
