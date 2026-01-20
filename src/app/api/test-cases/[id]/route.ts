@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyAuth, resolveUserId } from '@/lib/auth';
 import { createLogger } from '@/lib/logger';
+import { parseTestCaseJson } from '@/lib/test-case-utils';
 import { TestStep } from '@/types';
 import { getUploadPath } from '@/lib/file-security';
 import fs from 'fs/promises';
@@ -52,11 +53,7 @@ export async function GET(
         }
 
         const { project: _project, ...testCaseData } = testCase;
-        const parsedTestCase = {
-            ...testCaseData,
-            steps: testCase.steps ? JSON.parse(testCase.steps) : undefined,
-            browserConfig: testCase.browserConfig ? JSON.parse(testCase.browserConfig) : undefined,
-        };
+        const parsedTestCase = parseTestCaseJson(testCaseData);
 
         return NextResponse.json(parsedTestCase);
     } catch (error) {
