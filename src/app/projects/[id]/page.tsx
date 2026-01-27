@@ -168,6 +168,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
                             if (!latestRun || latestRun.id !== runId) {
                                 return {
                                     ...testCase,
+                                    status,
                                     testRuns: [
                                         {
                                             id: runId,
@@ -182,6 +183,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
 
                             return {
                                 ...testCase,
+                                status,
                                 testRuns: [{ ...latestRun, status }],
                             };
                         })
