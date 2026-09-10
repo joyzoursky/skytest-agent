@@ -9,15 +9,76 @@ This document defines SkyTest MCP tool behavior for maintainers.
 - MCP test case mutation tools: `apps/web/src/lib/mcp/test-case-mutation-tools.ts`
 - MCP schemas: `apps/web/src/lib/mcp/server-schemas.ts`
 - MCP auth helpers: `apps/web/src/lib/mcp/server-auth.ts`
+- MCP OAuth token validation: `apps/web/src/lib/mcp/oauth-auth.ts`
+- MCP resource URI contract: `apps/web/src/lib/mcp/oauth-resource.ts`
+- MCP scope policy: `apps/web/src/lib/mcp/scope-policy.ts`
+- MCP challenge responses: `apps/web/src/lib/mcp/oauth-challenge.ts`
 - MCP response/telemetry: `apps/web/src/lib/mcp/server-response.ts`
 - MCP server factory: `apps/web/src/lib/mcp/server.ts`
 - HTTP transport endpoint: `apps/web/src/app/api/mcp/route.ts`
+- Protected resource metadata: `apps/web/src/app/.well-known/oauth-protected-resource/`
 
 ## Transport Authentication
 
-- Authenticated requests must provide an API key (`sk_test_...`) in either:
-  - `Authorization: Bearer <AGENT_API_KEY>`
-  - `X-SkyTest-Api-Key: <AGENT_API_KEY>`
+MCP authenticates with OAuth 2.1 access tokens only. API keys are not accepted, and the
+`X-SkyTest-Api-Key` header is not read. API keys remain in use for the runner CLI, which is a
+separate interface managed at `/api-keys`.
+
+- Requests must send `Authorization: Bearer <access token>`. The token must be a JWT issued by the
+  configured authorization server for this resource.
+- `MCP_RESOURCE_URI` is the canonical resource identifier. It must be an absolute https URL with no
+  query or fragment (loopback http is allowed in development only). Register the same value as the
+  API resource in the authorization server. Metadata and challenges are built from this
+  configuration, never from a request `Host` header.
+- Validation requires a matching issuer, an audience matching `MCP_RESOURCE_URI`, a supported
+  signing algorithm, and `exp`, `sub`, and `client_id` claims. Audience comparison ignores a
+  trailing slash, because an authorization server may return the resource identifier in either
+  form.
+- The token subject is resolved against `User.authId` and must already exist. MCP never creates
+  users or links them by email; an unknown subject is denied with onboarding guidance.
+- `authInfo.extra.skytestUserId` carries the internal user id. `authInfo.clientId` is the OAuth
+  client, not the user. Never treat `clientId` as a user id.
+- Scope grants never widen access. Team and project membership is still enforced per query.
+
+### Scope policy
+
+`scope-policy.ts` is the single source of truth and covers every registered tool; a tool missing
+from it fails closed.
+
+| Requirement | Tools |
+|-------------|-------|
+| `read:tools` | Baseline for every authenticated request, and all list/get tools |
+| `+ write:tools` | `create_test_case`, `update_test_case`, `delete_test_case`, `manage_project_configs` |
+| `+ execute:tools` | `run_test_case`, `run_test_group`, `stop_all_runs`, `stop_all_queues` |
+
+`update_test_case` with `activeRunResolution: cancel_and_save` additionally requires
+`execute:tools`, because saving that way cancels active runs.
+
+Scopes are checked at the transport level before dispatch so a missing scope returns a real HTTP
+403 `insufficient_scope` challenge. Returning it from a tool handler would be wrapped into a
+`200` tool result, which clients cannot act on. Registration-time enforcement in `server.ts`
+repeats the check as defence in depth.
+
+### Supported methods
+
+`POST` carries JSON-RPC. `DELETE` is passed to the transport. `GET` is authenticated and then
+answered `405` with `Allow: POST, DELETE`: the transport is stateless with `enableJsonResponse`, so
+the standalone SSE stream can never carry anything, and closing the per-request server would end
+that stream before the response was returned. MCP permits a resource that does not offer the
+stream to answer `405`.
+
+### Discovery and challenges
+
+- RFC 9728 metadata is published at `/.well-known/oauth-protected-resource/api/mcp` and, for client
+  interoperability, at `/.well-known/oauth-protected-resource`. Both are public.
+- `401` responses carry `WWW-Authenticate: Bearer resource_metadata="..."`, adding
+  `error="invalid_token"` when a token was supplied but rejected.
+- Configuration and discovery failures return `500` with no challenge, so infrastructure problems
+  are not mistaken for credential problems.
+- Challenge text is drawn from a fixed set of descriptions. Never put a `jose` error message in a
+  response: `jose` validates `crit` before the signature and interpolates unverified header content
+  into its messages, so that text is attacker-controlled and can contain CRLF. Reasons belong in
+  the log.
 
 ## Run Session Model
 

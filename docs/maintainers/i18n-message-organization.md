@@ -17,12 +17,13 @@ unchanged.
 | `teams.ts` | Team settings and membership |
 | `team-ai.ts` | Team AI provider configuration |
 | `runners.ts` | Team runners, pairing, and runner devices |
-| `usage.ts` | Team usage and agent API keys |
+| `usage.ts` | Team usage records |
 | `runs.ts` | Run creation, history, results, and timelines |
 | `test-authoring.ts` | Test forms, builders, steps, uploads, and files |
 | `test-groups.ts` | Test-group editing, execution, and history |
 | `devices.ts` | Device state and target configuration |
-| `mcp.ts` | MCP connection UI |
+| `mcp.ts` | MCP OAuth connection UI |
+| `api-keys.ts` | Runner CLI API key management |
 
 ## Adding Messages
 

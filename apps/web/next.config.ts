@@ -13,6 +13,10 @@ function readAllowedDevOriginsFromEnv(): string[] {
 }
 
 const nextConfig: NextConfig = {
+  // `next dev` otherwise writes apps/web/AGENTS.md and a CLAUDE.md pointing at it. This repo
+  // maintains its own agent guidance in the root CLAUDE.md and docs/maintainers/, and a generated
+  // file here would shadow it for anything working inside apps/web.
+  agentRules: false,
   // Next.js only applies this in `next dev` for HMR/internal dev resources.
   allowedDevOrigins: readAllowedDevOriginsFromEnv(),
   // @midscene/* are server-only and must not be bundled: @midscene/core does an
