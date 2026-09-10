@@ -183,6 +183,17 @@ describe('MCP route OAuth authentication', () => {
         expect(mocks.close).toHaveBeenCalled();
     });
 
+    it('answers an authenticated GET with 405 rather than a stream it cannot serve', async () => {
+        const token = await createToken();
+
+        const response = await GET(mcpRequest({ method: 'GET', token }));
+
+        expect(response.status).toBe(405);
+        expect(response.headers.get('Allow')).toBe('POST, DELETE');
+        expect(mocks.createMcpServer).not.toHaveBeenCalled();
+        expect(mocks.handleRequest).not.toHaveBeenCalled();
+    });
+
     it.each([
         ['GET', GET],
         ['POST', POST],
@@ -273,6 +284,20 @@ describe('MCP route token validation', () => {
         const token = await createToken({ notBefore: Math.floor(Date.now() / 1000) + 600 });
 
         expect((await POST(mcpRequest({ token }))).status).toBe(401);
+    });
+
+    it('does not let unverified header content reach the challenge', async () => {
+        const encode = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');
+        const hostile = `${encode({ alg: 'RS256', crit: ['a\r\nX-Injected: 1'] })}.${encode({ sub: 'x' })}.AAAA`;
+
+        const response = await POST(mcpRequest({ token: hostile }));
+
+        expect(response.status).toBe(401);
+        const challenge = response.headers.get('WWW-Authenticate') ?? '';
+        expect(challenge).toContain('error="invalid_token"');
+        expect(challenge).not.toContain('X-Injected');
+        expect(challenge).not.toMatch(/[\r\n]/);
+        expect(JSON.stringify(await response.json())).not.toContain('X-Injected');
     });
 
     it('rejects an opaque API key as a bearer token', async () => {

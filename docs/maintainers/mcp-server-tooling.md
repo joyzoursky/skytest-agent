@@ -59,6 +59,14 @@ Scopes are checked at the transport level before dispatch so a missing scope ret
 `200` tool result, which clients cannot act on. Registration-time enforcement in `server.ts`
 repeats the check as defence in depth.
 
+### Supported methods
+
+`POST` carries JSON-RPC. `DELETE` is passed to the transport. `GET` is authenticated and then
+answered `405` with `Allow: POST, DELETE`: the transport is stateless with `enableJsonResponse`, so
+the standalone SSE stream can never carry anything, and closing the per-request server would end
+that stream before the response was returned. MCP permits a resource that does not offer the
+stream to answer `405`.
+
 ### Discovery and challenges
 
 - RFC 9728 metadata is published at `/.well-known/oauth-protected-resource/api/mcp` and, for client
@@ -67,6 +75,10 @@ repeats the check as defence in depth.
   `error="invalid_token"` when a token was supplied but rejected.
 - Configuration and discovery failures return `500` with no challenge, so infrastructure problems
   are not mistaken for credential problems.
+- Challenge text is drawn from a fixed set of descriptions. Never put a `jose` error message in a
+  response: `jose` validates `crit` before the signature and interpolates unverified header content
+  into its messages, so that text is attacker-controlled and can contain CRLF. Reasons belong in
+  the log.
 
 ## Run Session Model
 

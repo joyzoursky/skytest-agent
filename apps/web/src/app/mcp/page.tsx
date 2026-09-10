@@ -13,7 +13,7 @@ function escapeForSingleQuotedShellArg(value: string): string {
 }
 
 export default function McpPage() {
-    const { isLoggedIn, isLoading: isAuthLoading } = useAuth();
+    const { isLoggedIn, isLoading: isAuthLoading, authgearConfig } = useAuth();
     const router = useRouter();
     const { t } = useI18n();
 
@@ -25,9 +25,10 @@ export default function McpPage() {
         }
     }, [isAuthLoading, isLoggedIn, router]);
 
-    const mcpEndpoint = typeof window !== 'undefined'
-        ? `${window.location.origin}/api/mcp`
-        : '/api/mcp';
+    // The configured resource URI is what the server validates tokens against, so showing it
+    // avoids advertising an endpoint that would fail on audience. It is also render-stable, unlike
+    // window.location, which would differ between the server and client passes.
+    const mcpEndpoint = authgearConfig.mcpResourceUri || '/api/mcp';
 
     const claudeCodeCommand = useMemo(() => (
         `claude mcp add --scope user --transport http skytest '${escapeForSingleQuotedShellArg(mcpEndpoint)}'`

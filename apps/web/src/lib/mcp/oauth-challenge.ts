@@ -1,8 +1,12 @@
 import type { McpAuthFailure } from '@/lib/mcp/oauth-auth';
 import type { McpScope } from '@/lib/mcp/scope-policy';
 
+// A header value that cannot be constructed throws and would turn a challenge into a 500, so
+// strip anything outside the quoted-string charset RFC 9110 allows rather than trusting callers.
 function quoteHeaderValue(value: string): string {
-    return value.replace(/["\\]/g, '\\$&');
+    return value
+        .replace(/[^\t\x20-\x7e\x80-\xff]/g, ' ')
+        .replace(/["\\]/g, '\\$&');
 }
 
 function buildChallenge(metadataUrl: string | null, params: Record<string, string>): string {
@@ -30,17 +34,18 @@ export function unauthorizedResponse(failure: McpAuthFailure, metadataUrl: strin
         }, {});
     }
 
+    const description = failure.kind === 'invalid_token'
+        ? failure.description
+        : 'Authorization required. Connect this MCP server with OAuth.';
     const isInvalid = failure.kind === 'invalid_token';
     const challenge = buildChallenge(
         metadataUrl,
-        isInvalid ? { error: 'invalid_token', error_description: failure.detail } : {}
+        isInvalid ? { error: 'invalid_token', error_description: description } : {}
     );
 
     return jsonResponse(401, {
         error: isInvalid ? 'invalid_token' : 'unauthorized',
-        error_description: isInvalid
-            ? failure.detail
-            : 'Authorization required. Connect this MCP server with OAuth.',
+        error_description: description,
     }, { 'WWW-Authenticate': challenge });
 }
 

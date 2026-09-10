@@ -26,6 +26,8 @@ This allowlist is the source of truth for deny-by-default auth coverage checks. 
 | Route file | Methods | Guard mode | Reason |
 |---|---|---|---|
 | `apps/web/src/app/api/health/live/route.ts` | `GET` | `publicReadiness` | liveness probe for infra and orchestration |
+| `apps/web/src/app/.well-known/oauth-protected-resource/route.ts` | `GET` | `publicResourceMetadata` | RFC 9728 metadata; public by specification so OAuth clients can discover how to authenticate |
+| `apps/web/src/app/.well-known/oauth-protected-resource/api/mcp/route.ts` | `GET` | `publicResourceMetadata` | RFC 9728 metadata for the MCP resource; public by specification, serves only configured values |
 | `apps/web/src/app/api/health/ready/route.ts` | `GET` | `publicReadiness` | readiness probe for orchestration and health checks |
 | `apps/web/src/app/api/health/dependencies/route.ts` | `GET` | `publicReadiness` | dependency probe used by operator diagnostics |
 | `apps/web/src/app/api/authgear-proxy/route.ts` | `GET,POST,PUT,PATCH,DELETE` | `publicProxy` | auth-provider proxy path protected by endpoint allowlist + rate limiting |

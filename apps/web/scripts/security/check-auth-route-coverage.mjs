@@ -5,7 +5,7 @@ import path from 'node:path';
 
 const workspaceRoot = process.cwd();
 const repoRoot = path.resolve(workspaceRoot, '../..');
-const apiRoot = path.resolve(workspaceRoot, 'src/app/api');
+const appRoot = path.resolve(workspaceRoot, 'src/app');
 const allowlistPath = path.resolve(workspaceRoot, 'scripts/security/auth-route-allowlist.md');
 
 function normalizePath(inputPath) {
@@ -41,7 +41,7 @@ function parseAllowlist(markdown) {
         }
 
         const routeFile = rowMatch[1].trim();
-        if (!routeFile.startsWith('apps/web/src/app/api/')) {
+        if (!routeFile.startsWith('apps/web/src/app/')) {
             continue;
         }
 
@@ -87,6 +87,10 @@ function validateAllowlistedGuardMode(input) {
         return /export\s+async\s+function\s+GET\s*\(/.test(source);
     }
 
+    if (guardMode === 'publicResourceMetadata') {
+        return /\bbuildProtectedResourceMetadataResponse\(/.test(source);
+    }
+
     if (guardMode === 'nonOperational405') {
         return /status\s*:\s*405/.test(source);
     }
@@ -97,7 +101,7 @@ function validateAllowlistedGuardMode(input) {
 async function main() {
     const allowlistMarkdown = await readFile(allowlistPath, 'utf8');
     const allowlist = parseAllowlist(allowlistMarkdown);
-    const routeFiles = await listRouteFiles(apiRoot);
+    const routeFiles = await listRouteFiles(appRoot);
     const routePaths = routeFiles
         .map((absolutePath) => normalizePath(path.relative(repoRoot, absolutePath)))
         .sort();

@@ -2,7 +2,6 @@ import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
 import { createLogger } from '@/lib/core/logger';
 import {
     getMcpResourceConfig,
-    McpResourceConfigError,
     resourceUriMatches,
     type McpResourceConfig,
 } from '@/lib/mcp/oauth-resource';
@@ -23,8 +22,8 @@ export interface McpPrincipal {
 
 export type McpAuthFailure =
     | { kind: 'missing_token' }
-    | { kind: 'invalid_token'; detail: string }
-    | { kind: 'server_error'; detail: string };
+    | { kind: 'invalid_token'; description: string }
+    | { kind: 'server_error' };
 
 export type McpAuthResult =
     | { ok: true; principal: McpPrincipal; resource: McpResourceConfig }
@@ -134,9 +133,8 @@ export async function authenticateMcpRequest(request: Request): Promise<McpAuthR
     try {
         resource = getMcpResourceConfig();
     } catch (error) {
-        const detail = error instanceof McpResourceConfigError ? error.message : 'resource configuration invalid';
         logger.error('MCP OAuth resource configuration is invalid', error);
-        return { ok: false, failure: { kind: 'server_error', detail }, resource: null };
+        return { ok: false, failure: { kind: 'server_error' }, resource: null };
     }
 
     const token = getBearerToken(request);
@@ -149,11 +147,7 @@ export async function authenticateMcpRequest(request: Request): Promise<McpAuthR
         discovery = await getDiscovery(resource.issuer);
     } catch (error) {
         logger.error('MCP OAuth discovery failed', error);
-        return {
-            ok: false,
-            failure: { kind: 'server_error', detail: 'authorization server discovery unavailable' },
-            resource,
-        };
+        return { ok: false, failure: { kind: 'server_error' }, resource };
     }
 
     let payload: JWTPayload;
@@ -164,16 +158,23 @@ export async function authenticateMcpRequest(request: Request): Promise<McpAuthR
             requiredClaims: ['exp', 'sub'],
         }));
     } catch (error) {
-        const detail = error instanceof Error ? error.message : 'token verification failed';
-        logger.debug('MCP OAuth token rejected', { detail });
-        return { ok: false, failure: { kind: 'invalid_token', detail }, resource };
+        // jose interpolates unverified header content into its messages and validates `crit`
+        // before the signature, so this text is attacker-controlled. Log it, never return it.
+        logger.debug('MCP OAuth token rejected', {
+            reason: error instanceof Error ? error.message : 'token verification failed',
+        });
+        return {
+            ok: false,
+            failure: { kind: 'invalid_token', description: 'token verification failed' },
+            resource,
+        };
     }
 
     if (!audienceMatchesResource(payload, resource.resourceUri)) {
         logger.debug('MCP OAuth token rejected for audience mismatch');
         return {
             ok: false,
-            failure: { kind: 'invalid_token', detail: 'token audience does not match this resource' },
+            failure: { kind: 'invalid_token', description: 'token audience does not match this resource' },
             resource,
         };
     }
@@ -182,7 +183,7 @@ export async function authenticateMcpRequest(request: Request): Promise<McpAuthR
     if (!subject) {
         return {
             ok: false,
-            failure: { kind: 'invalid_token', detail: 'token has no subject' },
+            failure: { kind: 'invalid_token', description: 'token has no subject' },
             resource,
         };
     }
@@ -191,7 +192,7 @@ export async function authenticateMcpRequest(request: Request): Promise<McpAuthR
     if (!clientId) {
         return {
             ok: false,
-            failure: { kind: 'invalid_token', detail: 'token has no client_id claim' },
+            failure: { kind: 'invalid_token', description: 'token has no client_id claim' },
             resource,
         };
     }

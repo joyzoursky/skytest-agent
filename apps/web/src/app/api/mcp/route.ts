@@ -28,6 +28,21 @@ function replayRequest(request: Request, body: string | null): Request {
     });
 }
 
+/**
+ * The stateless JSON-response transport can never push anything down the standalone GET stream,
+ * and closing the per-request server would end that stream before the response was even returned.
+ * MCP allows a resource that does not offer the stream to answer 405 instead.
+ */
+function methodNotAllowedResponse(): Response {
+    return new Response(JSON.stringify({
+        error: 'method_not_allowed',
+        error_description: 'This MCP endpoint does not offer a standalone SSE stream.',
+    }), {
+        status: 405,
+        headers: { 'Content-Type': 'application/json', Allow: 'POST, DELETE' },
+    });
+}
+
 async function handleMcpRequest(request: Request): Promise<Response> {
     const startedAtMs = Date.now();
     let authResolvedAtMs = startedAtMs;
@@ -45,6 +60,10 @@ async function handleMcpRequest(request: Request): Promise<Response> {
             return unknownUserResponse(resource.metadataUrl);
         }
         authResolvedAtMs = Date.now();
+
+        if (request.method === 'GET') {
+            return methodNotAllowedResponse();
+        }
 
         const rawBody = request.method === 'POST' ? await request.text() : null;
         let parsedBody: unknown = null;

@@ -19,6 +19,12 @@ function isDevelopment(): boolean {
 }
 
 function parseAbsoluteUri(value: string, settingName: string): URL {
+    // URL reports a bare "?" or "#" as an empty search/hash while keeping it in href, so the
+    // delimiters have to be rejected on the raw string or they end up inside the resource id.
+    if (value.includes('?') || value.includes('#')) {
+        throw new McpResourceConfigError(`${settingName} must not contain a query string or fragment`);
+    }
+
     let parsed: URL;
     try {
         parsed = new URL(value);
@@ -34,10 +40,6 @@ function parseAbsoluteUri(value: string, settingName: string): URL {
         throw new McpResourceConfigError(
             `${settingName} must use https; plain http is only allowed for loopback hosts in development`
         );
-    }
-
-    if (parsed.hash || parsed.search) {
-        throw new McpResourceConfigError(`${settingName} must not contain a query string or fragment`);
     }
 
     return parsed;

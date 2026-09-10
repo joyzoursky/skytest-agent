@@ -91,6 +91,14 @@ describe('resource configuration validation', () => {
         expect(() => getMcpResourceConfig()).toThrow(/query string or fragment/);
     });
 
+    it('rejects a bare query or fragment delimiter', () => {
+        process.env.MCP_RESOURCE_URI = 'https://skytest.test.example/api/mcp?';
+        expect(() => getMcpResourceConfig()).toThrow(/query string or fragment/);
+
+        process.env.MCP_RESOURCE_URI = 'https://skytest.test.example/api/mcp#';
+        expect(() => getMcpResourceConfig()).toThrow(/query string or fragment/);
+    });
+
     it('rejects plain http on a non-loopback host', () => {
         process.env.MCP_RESOURCE_URI = 'http://skytest.test.example/api/mcp';
         expect(() => getMcpResourceConfig()).toThrow(/must use https/);
