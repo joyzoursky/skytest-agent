@@ -1,7 +1,14 @@
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
 import { createMcpServer } from '@/lib/mcp/server';
-import { verifyAuth, resolveUserId } from '@/lib/security/auth';
-import { isApiKeyFormat } from '@/lib/security/api-key';
+import { authenticateMcpRequest } from '@/lib/mcp/oauth-auth';
+import {
+    insufficientScopeResponse,
+    unauthorizedResponse,
+    unknownUserResponse,
+} from '@/lib/mcp/oauth-challenge';
+import { getRequiredScopesForBody } from '@/lib/mcp/oauth-request-scopes';
+import { resolveMcpUserId } from '@/lib/mcp/oauth-user';
+import { getMissingScopes } from '@/lib/mcp/scope-policy';
 import { createLogger } from '@/lib/core/logger';
 
 const logger = createLogger('api:mcp');
@@ -9,35 +16,16 @@ const SLOW_MCP_REQUEST_THRESHOLD_MS = 2_000;
 
 export const dynamic = 'force-dynamic';
 
-function getBearerToken(request: Request): string | null {
-    const authHeader = request.headers.get('Authorization');
-    if (authHeader) {
-        const [scheme, ...parts] = authHeader.trim().split(/\s+/);
-        if (scheme?.toLowerCase() === 'bearer' && parts.length > 0) {
-            return parts.join(' ');
-        }
+function replayRequest(request: Request, body: string | null): Request {
+    if (body === null) {
+        return request;
     }
 
-    const apiKeyHeader = request.headers.get('X-SkyTest-Api-Key')?.trim();
-    if (apiKeyHeader) {
-        return apiKeyHeader;
-    }
-
-    return null;
-}
-
-async function resolveAuthenticatedUserId(request: Request): Promise<string | null> {
-    const token = getBearerToken(request);
-    if (!token || !isApiKeyFormat(token)) {
-        return null;
-    }
-
-    const authPayload = await verifyAuth(request);
-    if (!authPayload) {
-        return null;
-    }
-
-    return resolveUserId(authPayload);
+    return new Request(request.url, {
+        method: request.method,
+        headers: request.headers,
+        body,
+    });
 }
 
 async function handleMcpRequest(request: Request): Promise<Response> {
@@ -45,13 +33,33 @@ async function handleMcpRequest(request: Request): Promise<Response> {
     let authResolvedAtMs = startedAtMs;
     let serverConnectedAtMs = startedAtMs;
     try {
-        const userId = await resolveAuthenticatedUserId(request);
-        authResolvedAtMs = Date.now();
+        const auth = await authenticateMcpRequest(request);
+        if (!auth.ok) {
+            return unauthorizedResponse(auth.failure, auth.resource?.metadataUrl ?? null);
+        }
+
+        const { principal, resource } = auth;
+        const userId = await resolveMcpUserId(principal.subject);
         if (!userId) {
-            return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-                status: 401,
-                headers: { 'Content-Type': 'application/json' },
-            });
+            logger.warn('MCP request denied for unknown SkyTest user', { clientId: principal.clientId });
+            return unknownUserResponse(resource.metadataUrl);
+        }
+        authResolvedAtMs = Date.now();
+
+        const rawBody = request.method === 'POST' ? await request.text() : null;
+        let parsedBody: unknown = null;
+        if (rawBody) {
+            try {
+                parsedBody = JSON.parse(rawBody);
+            } catch {
+                parsedBody = null;
+            }
+        }
+
+        const requiredScopes = getRequiredScopesForBody(parsedBody);
+        const missingScopes = getMissingScopes(principal.scopes, requiredScopes);
+        if (missingScopes.length > 0) {
+            return insufficientScopeResponse(missingScopes, requiredScopes, resource.metadataUrl);
         }
 
         const server = createMcpServer();
@@ -61,9 +69,21 @@ async function handleMcpRequest(request: Request): Promise<Response> {
         });
         await server.connect(transport);
         serverConnectedAtMs = Date.now();
-        const response = await transport.handleRequest(request, {
-            authInfo: { token: 'api-key', clientId: userId, scopes: [] },
-        });
+        let response: Response;
+        try {
+            response = await transport.handleRequest(replayRequest(request, rawBody), {
+                authInfo: {
+                    token: principal.token,
+                    clientId: principal.clientId,
+                    scopes: [...principal.scopes],
+                    expiresAt: principal.expiresAt,
+                    resource: new URL(resource.resourceUri),
+                    extra: { skytestUserId: userId },
+                },
+            });
+        } finally {
+            await server.close();
+        }
         const completedAtMs = Date.now();
         const authLatencyMs = authResolvedAtMs - startedAtMs;
         const setupLatencyMs = serverConnectedAtMs - authResolvedAtMs;

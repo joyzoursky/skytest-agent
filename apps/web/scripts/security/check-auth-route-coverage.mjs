@@ -64,6 +64,7 @@ function hasStandardGuard(source) {
         || /\bguardTeamRouteRequest\(/.test(source)
         || /\bguardTestCaseRouteRequest\(/.test(source)
         || /\bguardTestRunRouteRequest\(/.test(source)
+        || /\bauthenticateMcpRequest\(/.test(source)
     );
 }
 

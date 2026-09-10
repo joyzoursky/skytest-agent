@@ -9,5 +9,6 @@ export function getAuthgearRuntimeConfig(): AuthgearRuntimeConfig {
         clientId: readConfigValue('AUTHGEAR_CLIENT_ID'),
         endpoint: readConfigValue('AUTHGEAR_ENDPOINT'),
         redirectUri: readConfigValue('AUTHGEAR_REDIRECT_URI'),
+        mcpResourceUri: readConfigValue('MCP_RESOURCE_URI'),
     };
 }
