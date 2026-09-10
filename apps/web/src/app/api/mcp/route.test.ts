@@ -243,6 +243,15 @@ describe('MCP route token validation', () => {
         expect((await POST(mcpRequest({ token }))).status).toBe(200);
     });
 
+    it('accepts the claim shape Authgear actually issues', async () => {
+        const token = await createToken({
+            audience: [RESOURCE_URI],
+            scope: 'openid offline_access read:tools write:tools execute:tools',
+        });
+
+        expect((await POST(mcpRequest({ token, body: toolCall('list_projects') }))).status).toBe(200);
+    });
+
     it('accepts an audience array containing the resource', async () => {
         const token = await createToken({ audience: ['https://other.test.example', RESOURCE_URI] });
 
