@@ -3,6 +3,13 @@
 import { execFileSync } from 'node:child_process';
 
 const ignoredAdvisoryUrls = new Set([
+    // extract-zip symlink path traversal / arbitrary file write. No fixed release exists: the
+    // latest published extract-zip (2.0.1) is itself in the vulnerable range, so no override or
+    // floor can clear these. Reached only through @midscene/web -> puppeteer-core ->
+    // @puppeteer/browsers, which SkyTest never invokes (it drives Playwright, and the Playwright
+    // browser download path does not use extract-zip). Re-check when extract-zip ships >2.0.1.
+    'https://github.com/advisories/GHSA-jmr9-qjv8-65gv',
+    'https://github.com/advisories/GHSA-7pqw-9j4j-h8q3',
     'https://github.com/advisories/GHSA-r5fr-rjxr-66jc',
     'https://github.com/advisories/GHSA-f23m-r3pf-42rh',
     'https://github.com/advisories/GHSA-8r9q-7v3j-jr4g',

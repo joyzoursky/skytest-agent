@@ -63,8 +63,8 @@
     "cron-parser": "5.4.0",
     "exceljs": "4.4.0",
     "jose": "6.1.3",
-    "js-yaml": "4.3.1",
-    "next": "16.2.12",
+    "js-yaml": "4.3.2",
+    "next": "16.3.4",
     "pg": "8.20.0",
     "playwright": "1.61.0",
     "react": "19.2.3",
@@ -79,14 +79,14 @@
     "@types/react-dom": "19.2.3",
     "autoprefixer": "10.4.23",
     "eslint": "9.39.2",
-    "eslint-config-next": "16.2.12",
+    "eslint-config-next": "16.3.4",
     "eslint-plugin-react-hooks": "7.0.1",
     "postcss": "8.5.23",
     "prisma": "6.12.0",
     "tailwindcss": "4.1.18",
     "typescript": "5.9.3",
     "vite": "7.3.5",
-    "vitest": "4.1.8"
+    "vitest": "4.1.11"
   },
   "overrides": {
     "playwright": "1.61.0",
@@ -94,13 +94,13 @@
     "@playwright/test": "1.61.0",
     "@hono/node-server": "2.0.12",
     "@midscene/core@1.9.2": {
-      "js-yaml": "4.3.1"
+      "js-yaml": "4.3.2"
     },
     "@midscene/shared@1.9.2": {
       "@modelcontextprotocol/sdk": "1.30.0"
     },
     "@modelcontextprotocol/sdk": "1.30.0",
-    "hono": "4.12.34",
+    "hono": "4.13.7",
     "follow-redirects": "1.16.0",
     "axios": "1.18.1",
     "express@4.22.2": {
@@ -111,12 +111,12 @@
     "lodash": "4.18.1",
     "shell-quote": "1.10.0",
     "ip-address": "10.3.1",
-    "fast-uri": "3.1.5",
+    "fast-uri": "3.1.7",
     "postcss": "8.5.23",
     "next": {
       "postcss": "8.5.23"
     },
-    "js-yaml": "4.3.1",
+    "js-yaml": "4.3.2",
     "basic-ftp": "5.3.1",
     "yauzl": "3.2.1",
     "@appium/support": {
@@ -140,8 +140,10 @@
     },
     "fast-xml-parser": "5.7.1",
     "flatted": "3.4.2",
-    "sharp": "0.35.3",
+    "sharp": "0.35.4",
     "eslint-plugin-react-hooks": "7.0.1",
-    "nanoid": "3.3.17"
+    "nanoid": "3.3.18",
+    "browserslist": "4.28.9",
+    "baseline-browser-mapping": "2.11.21"
   }
 }
