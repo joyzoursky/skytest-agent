@@ -21,9 +21,18 @@ describe('protected resource metadata', () => {
         expect(await response.json()).toEqual({
             resource: 'https://skytest.test.example/api/mcp',
             authorization_servers: ['https://issuer.test.example'],
-            scopes_supported: ['read:tools', 'write:tools', 'execute:tools'],
+            scopes_supported: ['openid', 'offline_access', 'read:tools', 'write:tools', 'execute:tools'],
             bearer_methods_supported: ['header'],
         });
+    });
+
+    it('advertises openid, without which Authgear rejects the authorization request', async () => {
+        const payload = await (await GET()).json();
+
+        // Clients build their scope request from this list, so omitting these breaks the login
+        // flow before any token is ever issued.
+        expect(payload.scopes_supported).toContain('openid');
+        expect(payload.scopes_supported).toContain('offline_access');
     });
 
     it('is publicly cacheable and needs no credentials', async () => {
